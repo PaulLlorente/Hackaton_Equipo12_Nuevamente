@@ -1,0 +1,13 @@
+# Entornos y cachés locales
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Artefactos generados por el PoC local
+artifacts/
+
+# Secretos y configuración local
+.env
+.env.*
+!.env.example
