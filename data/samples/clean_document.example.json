@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0",
+  "document_id": "manual-demo-nuevamente",
+  "tenant_id": "equipo-12-demo",
+  "title": "Manual técnico de ejemplo",
+  "language": "es",
+  "source": {
+    "file_name": "manual-demo.pdf",
+    "content_type": "application/pdf",
+    "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+  },
+  "pages": [
+    {
+      "page_number": 1,
+      "text": "Autenticación\n\nCada solicitud debe incluir un token de acceso válido. El token expira después de sesenta minutos. Cuando expire, el cliente debe solicitar uno nuevo con sus credenciales de aplicación.\n\nNunca registre tokens completos en los logs.",
+      "metadata": { "has_ocr": false }
+    },
+    {
+      "page_number": 2,
+      "text": "Límites y reintentos\n\nLa API admite cien solicitudes por minuto por cliente. Si el servicio responde con estado 429, espere el tiempo indicado por Retry-After antes de reintentar. Use espera exponencial y un máximo de tres reintentos.",
+      "metadata": { "has_ocr": false }
+    },
+    {
+      "page_number": 3,
+      "text": "Protección de datos\n\nLos archivos se cifran durante el tránsito y en reposo. El sistema conserva los archivos originales durante treinta días. Un administrador puede solicitar su eliminación anticipada.",
+      "metadata": { "has_ocr": false }
+    }
+  ],
+  "extraction": {
+    "parser": "pypdf",
+    "parser_version": "5.x",
+    "extracted_at": "2026-09-17T12:00:00Z",
+    "warnings": []
+  }
+}
