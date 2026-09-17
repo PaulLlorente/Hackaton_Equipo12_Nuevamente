@@ -7,8 +7,8 @@ Este documento registra el historial de avances, acuerdos de reuniones (Dailys/S
 ---
 
 ## 📅 Semana 1: Setup, Arquitectura y Pruebas de Concepto (PoC)
-**Fechas:** [Insertar Fechas]  
-**Estado:** En curso / Completado  
+**Fechas:** 21/09/2026 al 27/09/2026  
+**Estado:** Pendiente 
 
 ### 🎯 Objetivos de la Semana
 - Configuración inicial del repositorio y tableros de trabajo.
@@ -30,7 +30,7 @@ Este documento registra el historial de avances, acuerdos de reuniones (Dailys/S
 ---
 
 ## 📅 Semana 2: Desarrollo del Core (Integración Backend - RAG)
-**Fechas:** [Insertar Fechas]  
+**Fechas:** 28/9/2026 al 04/10/2026 
 **Estado:** Pendiente  
 
 ### 🎯 Objetivos de la Semana
@@ -47,7 +47,7 @@ Este documento registra el historial de avances, acuerdos de reuniones (Dailys/S
 ---
 
 ## 📅 Semana 3: Orquestación LLM y Conexión Frontend
-**Fechas:** [Insertar Fechas]  
+**Fechas:** 05/10/2026 al 11/10/2026 
 **Estado:** Pendiente  
 
 ### 🎯 Objetivos de la Semana
@@ -61,7 +61,7 @@ Este documento registra el historial de avances, acuerdos de reuniones (Dailys/S
 ---
 
 ## 📅 Semana 4: Testing, Refinamiento y Demo Day
-**Fechas:** [Insertar Fechas]  
+**Fechas:** 12/10/2026 al 18/10/2026
 **Estado:** Pendiente  
 
 ### 🎯 Objetivos de la Semana
