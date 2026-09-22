@@ -1,4 +1,6 @@
-pymupdf
-pydantic
-jsonschema
-pytest
+jsonschema>=4.23,<5
+numpy>=1.26,<3
+pydantic>=2.10,<3
+pymupdf>=1.25,<2
+pytest>=8.3,<10
+sentence-transformers>=5.0,<6

@@ -336,4 +336,3 @@ Para mi daily, resumo mi avance asi:
 un contrato compartido. Cada parser que agregue debe respetar la misma salida
 aunque internamente use una libreria diferente; asi el consumidor de chunking no
 queda acoplado a mi parser concreto.
-

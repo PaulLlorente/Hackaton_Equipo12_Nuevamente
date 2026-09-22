@@ -1,11 +1,10 @@
-# Entornos virtuales
+# Entornos virtuales y cachés
 .venv/
 venv/
 env/
-
-# Archivos compilados de Python
 __pycache__/
-*.pyc
+*.py[cod]
+.pytest_cache/
 
 # Archivos de prueba locales
 *.pdf
@@ -15,5 +14,10 @@ __pycache__/
 tests/*.json
 resultado*.json
 
-# Caché de pytest
-.pytest_cache/
+# Artefactos generados por el PoC RAG
+artifacts/
+
+# Secretos y configuración local
+.env
+.env.*
+!.env.example
