@@ -1,0 +1,164 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Documento Ingestado Limpio",
+    "description": "Contrato de datos entregado por el Módulo de Ingestión al Módulo RAG.",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+        "schema_version",
+        "tenant_id",
+        "document_id",
+        "titulo",
+        "idioma",
+        "tipo_origen",
+        "fecha_ingesta",
+        "metadata_origen",
+        "extraccion",
+        "contenido_estructurado"
+    ],
+    "properties": {
+        "schema_version": {
+            "const": "1.0",
+            "minLength": 1
+        },
+        "tenant_id": {
+            "type": "string",
+            "minLength": 1
+        },
+        "document_id": {
+            "type": "string",
+            "minLength": 1
+        },
+        "titulo": {
+            "type": "string",
+            "minLength": 1
+        },
+        "idioma": {
+            "type": "string",
+            "enum": [
+                "es",
+                "en",
+                "pt"
+            ],
+            "default": "es"
+        },
+        "tipo_origen": {
+            "type": "string",
+            "minLength": 1
+        },
+        "fecha_ingesta": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "metadata_origen": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "nombre_archivo",
+                "total_paginas",
+                "sha256"
+            ],
+            "properties": {
+                "nombre_archivo": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "total_paginas": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "sha256": {
+                    "type": "string",
+                    "pattern": "^[a-fA-F0-9]{64}$"
+                }
+            }
+        },
+        "extraccion": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "parser",
+                "version_parser",
+                "advertencias"
+            ],
+            "properties": {
+                "parser": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "version_parser": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "advertencias": {
+                    "type": "array",
+                    "items": {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "required": [
+                            "codigo",
+                            "pagina",
+                            "mensaje",
+                            "requiere_ocr"
+                        ],
+                        "properties": {
+                            "codigo": {
+                                "type": "string",
+                                "minLength": 1
+                            },
+                            "pagina": {
+                                "type": "integer",
+                                "minimum": 1
+                            },
+                            "mensaje": {
+                                "type": "string",
+                                "minLength": 2
+                            },
+                            "requiere_ocr": {
+                                "type": "boolean"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "contenido_estructurado": {
+            "type": "array",
+            "items": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                    "nivel_encabezado",
+                    "titulo_seccion",
+                    "texto",
+                    "pagina_inicio",
+                    "pagina_fin"
+                ],
+                "properties": {
+                    "nivel_encabezado": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "titulo_seccion": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "minLength": 0
+                    },
+                    "texto": {
+                        "type": "string"
+                    },
+                    "pagina_inicio": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "pagina_fin": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
+                }
+            }
+        }
+    }
+}

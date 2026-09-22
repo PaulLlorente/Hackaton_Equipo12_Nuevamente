@@ -1,0 +1,19 @@
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Archivos compilados de Python
+__pycache__/
+*.pyc
+
+# Archivos de prueba locales
+*.pdf
+!docs/test_pdf/Guia de Usuario - Oracle AI Success Navigator.pdf
+
+# JSONs generados por pruebas
+tests/*.json
+resultado*.json
+
+# Caché de pytest
+.pytest_cache/
