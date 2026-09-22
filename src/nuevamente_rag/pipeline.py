@@ -15,8 +15,9 @@ import unicodedata
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable, Protocol, Sequence
+from typing import Any, Protocol, Sequence
 
+import jsonschema
 import numpy as np
 
 
@@ -45,8 +46,12 @@ class Embedder(Protocol):
 
 
 @dataclass(frozen=True)
-class Page:
-    page_number: int
+class DocumentSection:
+    section_index: int
+    heading_level: int
+    section_title: str | None
+    page_start: int
+    page_end: int
     text: str
 
 
@@ -56,7 +61,7 @@ class CleanDocument:
     tenant_id: str
     title: str
     language: str
-    pages: tuple[Page, ...]
+    sections: tuple[DocumentSection, ...]
     source: dict[str, Any]
     extraction: dict[str, Any]
 
@@ -69,6 +74,9 @@ class Chunk:
     title: str
     language: str
     chunk_index: int
+    section_index: int
+    section_title: str | None
+    heading_level: int
     page_start: int
     page_end: int
     token_start: int
@@ -80,15 +88,20 @@ class Chunk:
 
     def to_record(self) -> dict[str, Any]:
         record = asdict(self)
-        record["metadata"] = {
+        metadata: dict[str, str | int] = {
             "tenant_id": self.tenant_id,
             "document_id": self.document_id,
             "title": self.title,
             "language": self.language,
+            "section_index": self.section_index,
+            "heading_level": self.heading_level,
             "page_start": self.page_start,
             "page_end": self.page_end,
             "chunk_index": self.chunk_index,
         }
+        if self.section_title is not None:
+            metadata["section_title"] = self.section_title
+        record["metadata"] = metadata
         return record
 
 
@@ -111,7 +124,7 @@ def _required_string(data: dict[str, Any], key: str) -> str:
 
 
 def load_clean_document(input_path: str | Path) -> CleanDocument:
-    """Carga TXT o el contrato JSON de texto limpio acordado con Backend."""
+    """Carga TXT o el contrato v1.0 estructurado del módulo de ingestión."""
 
     path = Path(input_path)
     if not path.is_file():
@@ -127,53 +140,90 @@ def load_clean_document(input_path: str | Path) -> CleanDocument:
             tenant_id="default",
             title=path.stem,
             language="es",
-            pages=(Page(page_number=1, text=text),),
+            sections=(
+                DocumentSection(
+                    section_index=0,
+                    heading_level=0,
+                    section_title=None,
+                    page_start=1,
+                    page_end=1,
+                    text=text,
+                ),
+            ),
             source={"file_name": path.name, "content_type": "text/plain"},
-            extraction={"parser": "external", "warnings": []},
+            extraction={"parser": "external", "advertencias": []},
         )
 
     if path.suffix.lower() != ".json":
         raise ValueError("La entrada debe ser .json o .txt")
 
-    data = json.loads(path.read_text(encoding="utf-8"))
-    if data.get("schema_version") != "1.0":
-        raise ValueError("schema_version debe ser '1.0'")
+    data = json.loads(path.read_text(encoding="utf-8-sig"))
+    contract_path = Path(__file__).resolve().parents[2] / "contracts" / "clean_document.schema.json"
+    contract = json.loads(contract_path.read_text(encoding="utf-8"))
+    try:
+        jsonschema.validate(
+            instance=data,
+            schema=contract,
+            format_checker=jsonschema.FormatChecker(),
+        )
+    except jsonschema.ValidationError as exc:
+        location = ".".join(str(part) for part in exc.absolute_path) or "$"
+        raise ValueError(f"El JSON no cumple el contrato v1.0 en '{location}': {exc.message}") from exc
 
-    raw_pages = data.get("pages")
-    if not isinstance(raw_pages, list) or not raw_pages:
-        raise ValueError("El campo 'pages' debe contener al menos una página")
+    metadata_source = data["metadata_origen"]
+    total_pages = int(metadata_source["total_paginas"])
+    sections: list[DocumentSection] = []
+    for section_index, raw_section in enumerate(data["contenido_estructurado"]):
+        page_start = int(raw_section["pagina_inicio"])
+        page_end = int(raw_section["pagina_fin"])
+        if page_end < page_start:
+            raise ValueError(
+                f"La sección {section_index} tiene pagina_fin menor que pagina_inicio"
+            )
+        if page_end > total_pages:
+            raise ValueError(
+                f"La sección {section_index} referencia la página {page_end}, "
+                f"pero total_paginas es {total_pages}"
+            )
 
-    pages: list[Page] = []
-    seen_pages: set[int] = set()
-    for raw_page in raw_pages:
-        if not isinstance(raw_page, dict):
-            raise ValueError("Cada página debe ser un objeto JSON")
-        page_number = raw_page.get("page_number")
-        if not isinstance(page_number, int) or page_number < 1:
-            raise ValueError("page_number debe ser un entero mayor o igual a 1")
-        if page_number in seen_pages:
-            raise ValueError(f"page_number duplicado: {page_number}")
-        seen_pages.add(page_number)
-        text = normalize_extracted_text(str(raw_page.get("text", "")))
-        if text:
-            pages.append(Page(page_number=page_number, text=text))
+        raw_title = raw_section["titulo_seccion"]
+        section_title = (
+            normalize_extracted_text(raw_title)
+            if isinstance(raw_title, str) and raw_title.strip()
+            else None
+        )
+        body = normalize_extracted_text(raw_section["texto"])
+        text = "\n\n".join(part for part in (section_title, body) if part)
+        if not text:
+            continue
+        sections.append(
+            DocumentSection(
+                section_index=section_index,
+                heading_level=int(raw_section["nivel_encabezado"]),
+                section_title=section_title,
+                page_start=page_start,
+                page_end=page_end,
+                text=text,
+            )
+        )
 
-    if not pages:
-        raise ValueError("Ninguna página contiene texto útil")
+    if not sections:
+        raise ValueError("contenido_estructurado no contiene texto útil para indexar")
 
-    pages.sort(key=lambda page: page.page_number)
     return CleanDocument(
         document_id=_required_string(data, "document_id"),
         tenant_id=_required_string(data, "tenant_id"),
-        title=_required_string(data, "title"),
-        language=_required_string(data, "language"),
-        pages=tuple(pages),
-        source=data.get("source", {}) if isinstance(data.get("source", {}), dict) else {},
-        extraction=(
-            data.get("extraction", {})
-            if isinstance(data.get("extraction", {}), dict)
-            else {}
-        ),
+        title=_required_string(data, "titulo"),
+        language=_required_string(data, "idioma"),
+        sections=tuple(sections),
+        source={
+            "file_name": metadata_source["nombre_archivo"],
+            "content_type": data["tipo_origen"],
+            "sha256": metadata_source["sha256"],
+            "total_pages": total_pages,
+            "ingested_at": data["fecha_ingesta"],
+        },
+        extraction=data["extraccion"],
     )
 
 
@@ -201,21 +251,22 @@ class TokenAwareChunker:
 
     def split(self, document: CleanDocument) -> list[Chunk]:
         chunks: list[Chunk] = []
-        for page in document.pages:
-            offsets = self._token_offsets(page.text)
+        for section in document.sections:
+            offsets = self._token_offsets(section.text)
             start = 0
             while start < len(offsets):
                 hard_end = min(start + self.chunk_tokens, len(offsets))
-                end = self._preferred_end(page.text, offsets, start, hard_end)
+                end = self._preferred_end(section.text, offsets, start, hard_end)
                 char_start = offsets[start][0]
                 char_end = offsets[end - 1][1]
-                chunk_text = page.text[char_start:char_end].strip()
+                chunk_text = section.text[char_start:char_end].strip()
                 if chunk_text:
                     chunk_index = len(chunks)
                     fingerprint = hashlib.sha256(
-                        f"{document.document_id}|{page.page_number}|{start}|{chunk_text}".encode(
-                            "utf-8"
-                        )
+                        (
+                            f"{document.document_id}|{section.section_index}|"
+                            f"{section.page_start}|{start}|{chunk_text}"
+                        ).encode("utf-8")
                     ).hexdigest()[:12]
                     chunks.append(
                         Chunk(
@@ -225,8 +276,11 @@ class TokenAwareChunker:
                             title=document.title,
                             language=document.language,
                             chunk_index=chunk_index,
-                            page_start=page.page_number,
-                            page_end=page.page_number,
+                            section_index=section.section_index,
+                            section_title=section.section_title,
+                            heading_level=section.heading_level,
+                            page_start=section.page_start,
+                            page_end=section.page_end,
                             token_start=start,
                             token_end=end,
                             token_count=end - start,
@@ -257,7 +311,7 @@ class TokenAwareChunker:
             raise TypeError("El tokenizer no devolvió offset_mapping")
         clean_offsets = [(int(start), int(end)) for start, end in offsets if int(end) > int(start)]
         if not clean_offsets:
-            raise ValueError("El tokenizer no produjo tokens para una página con texto")
+            raise ValueError("El tokenizer no produjo tokens para una sección con texto")
         return clean_offsets
 
     def _preferred_end(
@@ -369,14 +423,20 @@ def build_index(
             "tenant_id": document.tenant_id,
             "title": document.title,
             "language": document.language,
-            "page_count": len(document.pages),
+            "page_count": int(document.source.get("total_pages", 1)),
+            "section_count": len(document.sections),
+            "source_sha256": document.source.get("sha256"),
+            "extraction_warning_count": len(
+                document.extraction.get("advertencias", [])
+            ),
         },
         "chunking": {
             "strategy": "token_window_with_natural_boundaries",
             "chunk_tokens": chunk_tokens,
             "overlap_tokens": overlap_tokens,
             "chunk_count": len(chunks),
-            "page_boundaries_preserved": True,
+            "section_boundaries_preserved": True,
+            "source_page_ranges_preserved": True,
         },
         "embeddings": {
             "model": embedder.model_name,
@@ -466,6 +526,9 @@ def search_index(
                 "chunk_id": chunk["chunk_id"],
                 "document_id": chunk["document_id"],
                 "tenant_id": chunk["tenant_id"],
+                "section_index": chunk["section_index"],
+                "section_title": chunk["section_title"],
+                "heading_level": chunk["heading_level"],
                 "page_start": chunk["page_start"],
                 "page_end": chunk["page_end"],
                 "text": chunk["text"],

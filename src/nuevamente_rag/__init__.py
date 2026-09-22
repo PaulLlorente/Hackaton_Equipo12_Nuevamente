@@ -3,7 +3,7 @@
 from .pipeline import (
     Chunk,
     CleanDocument,
-    Page,
+    DocumentSection,
     SentenceTransformerEmbedder,
     TokenAwareChunker,
     build_index,
@@ -14,7 +14,7 @@ from .pipeline import (
 __all__ = [
     "Chunk",
     "CleanDocument",
-    "Page",
+    "DocumentSection",
     "SentenceTransformerEmbedder",
     "TokenAwareChunker",
     "build_index",

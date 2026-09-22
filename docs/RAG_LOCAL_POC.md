@@ -2,32 +2,52 @@
 
 ## Objetivo
 
-Esta prueba recibe el texto limpio de un PDF, conserva la referencia de página, crea chunks medidos con el tokenizer del modelo y genera embeddings locales. El resultado valida el contrato entre Ingestión, AI y Vector Store antes de conectar Gemini, LangChain o ChromaDB.
+Este módulo consume el contrato v1.0 producido por Ingestión, divide cada sección extensa en chunks medidos con el tokenizer del modelo y genera embeddings locales. La salida sirve como frontera estable para que RAG Data cargue los vectores y metadatos en ChromaDB.
 
-## Decisiones
+## Flujo entre módulos
 
-- **Modelo local:** `intfloat/multilingual-e5-small`, multilingüe, 384 dimensiones y ejecución en CPU.
-- **Chunking inicial:** 350 tokens con 50 tokens de solapamiento. Cada chunk permanece dentro de una página y el algoritmo prefiere terminar en un párrafo u oración.
-- **Recuperación:** consulta con prefijo `query: ` y documento con `passage: `. Los vectores quedan normalizados, por lo que Chroma puede usar distancia coseno y la prueba local puede usar producto punto.
-- **Aislamiento:** cada chunk contiene `tenant_id` y `document_id`. Esos campos deben convertirse en filtros obligatorios del retriever.
-- **Trazabilidad:** `page_start` y `page_end` permiten mostrar evidencia verificable al usuario.
+```text
+PDF
+  -> src/ingestion
+  -> JSON v1.0 con contenido_estructurado
+  -> src/nuevamente_rag
+  -> chunks.jsonl + embeddings.npy + manifest.json
+  -> ChromaDB
+```
 
-Estos valores son una línea base. Deben ajustarse con un conjunto de preguntas y métricas de recuperación, no por intuición.
+Responsabilidades:
 
-## Contrato con el módulo de extracción
+- **Ingestión:** extrae el PDF, detecta secciones, calcula SHA-256 y reporta advertencias.
+- **AI:** valida el contrato, aplica la política de chunking y comprueba la recuperación local.
+- **RAG Data:** genera los embeddings definitivos y persiste chunks y metadatos en ChromaDB.
 
-Brayan o Backend debe entregar JSON UTF-8 que cumpla `contracts/clean_document.schema.json`. El ejemplo completo está en `data/samples/clean_document.example.json`.
+## Contrato de entrada
 
-Reglas de limpieza:
+El contrato oficial está en `contracts/clean_document.schema.json`. El ejemplo mínimo reproducible está en `data/samples/clean_document.example.json`.
 
-1. Una entrada por documento y una lista ordenada de páginas.
-2. Conservar títulos, listas, párrafos, bloques de código y saltos entre párrafos.
-3. Quitar caracteres de control, espacios repetidos y cortes de palabra causados por fin de línea.
-4. No resumir, traducir ni corregir el contenido técnico.
-5. Registrar advertencias de OCR o páginas vacías en `extraction.warnings`.
-6. Calcular `source.sha256` desde los bytes del PDF original.
+Campos utilizados por el chunker:
 
-El script también acepta `.txt` para una prueba rápida, aunque ese modo pierde la página original y usa `tenant_id=default`.
+- `tenant_id` y `document_id` para aislamiento y trazabilidad.
+- `titulo` e `idioma` para describir el documento.
+- `metadata_origen.sha256` para identificar el PDF original.
+- `extraccion.advertencias` para informar degradaciones u OCR pendiente.
+- `contenido_estructurado[].nivel_encabezado` y `titulo_seccion` para contexto semántico.
+- `pagina_inicio` y `pagina_fin` para citar la evidencia original.
+
+El título de la sección se antepone al texto antes de generar embeddings. Las secciones vacías que solo contienen un título pueden producir un chunk de título; los elementos completamente vacíos se omiten.
+
+## Política de chunking
+
+- Modelo local: `intfloat/multilingual-e5-small`.
+- Tamaño máximo inicial: 350 tokens.
+- Solapamiento: 50 tokens.
+- Cada sección se procesa por separado.
+- El algoritmo prefiere terminar en un límite de párrafo u oración.
+- Todos los chunks conservan `section_title`, `heading_level`, `page_start` y `page_end`.
+- Los documentos usan el prefijo `passage: ` y las consultas `query: `.
+- Los vectores se normalizan a norma L2 igual a 1.
+
+Una sección puede producir uno o varios chunks. Un chunk nunca mezcla contenido de dos secciones distintas.
 
 ## Instalación
 
@@ -40,9 +60,21 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-La primera ejecución descarga el modelo. Las siguientes pueden ejecutarse sin red con `--offline`.
+La primera construcción descarga el modelo. Las consultas posteriores pueden ejecutarse sin red con `--offline`.
 
-## Construir el índice local
+## Ejecutar todas las pruebas
+
+```powershell
+python -m pytest -q
+```
+
+Las pruebas comprueban tanto Ingestión como RAG e incluyen un recorrido real:
+
+```text
+PDF de prueba -> JSON v1.0 -> secciones -> chunks
+```
+
+## Construir el índice de ejemplo
 
 ```powershell
 python scripts/rag_local.py build `
@@ -50,36 +82,28 @@ python scripts/rag_local.py build `
   --output artifacts/rag-local
 ```
 
-Salida esperada:
+Salida:
 
-- `chunks.jsonl`: texto y metadatos listos para `ids`, `documents` y `metadatas` de ChromaDB.
+- `chunks.jsonl`: texto y metadatos listos para ChromaDB.
 - `embeddings.npy`: matriz `float32`; la fila N corresponde a la línea N de `chunks.jsonl`.
-- `manifest.json`: modelo, dimensión, forma, configuración y SHA-256 de cada artefacto.
+- `manifest.json`: modelo, dimensión, configuración, forma y SHA-256 de los artefactos.
 
-## Probar recuperación
+## Probar recuperación offline
 
 ```powershell
 python scripts/rag_local.py query `
   --index artifacts/rag-local `
   --text "¿Qué debo hacer cuando la API devuelve 429?" `
   --tenant-id equipo-12-demo `
-  --top-k 3 `
+  --top-k 1 `
   --offline
 ```
 
-La respuesta JSON incluye puntaje, `chunk_id`, documento, tenant, página y texto recuperado. Para aprobar la prueba, el resultado principal debe corresponder a la página 2 del documento de ejemplo.
+El primer resultado esperado corresponde a `Límites y reintentos`, página 2.
 
-## Pruebas automatizadas
+## Integración con ChromaDB
 
-```powershell
-python -m unittest discover -s tests -v
-```
-
-Las pruebas unitarias no descargan modelos. Verifican limpieza, solapamiento, límites de página, alineación entre JSONL y NPY, dimensión, normalización, filtro por tenant y una consulta de recuperación determinista.
-
-## Integración posterior con ChromaDB
-
-Vanessa puede cargar los archivos manteniendo esta correspondencia:
+La correspondencia de los artefactos es:
 
 ```python
 collection.add(
@@ -90,24 +114,28 @@ collection.add(
 )
 ```
 
-Toda consulta debe filtrar al menos por `tenant_id`. Cuando se conozca el documento, también debe filtrar por `document_id`.
+Cada `metadata` contiene como mínimo:
+
+```json
+{
+  "tenant_id": "empresa_x",
+  "document_id": "doc_001",
+  "section_index": 4,
+  "section_title": "Subredes públicas y privadas",
+  "heading_level": 2,
+  "page_start": 2,
+  "page_end": 3,
+  "chunk_index": 7
+}
+```
+
+Toda consulta de producción debe filtrar por `tenant_id`. Cuando se conoce el documento, también debe filtrar por `document_id`.
 
 ## Criterios de aceptación
 
-- El mismo texto y la misma configuración producen los mismos `chunk_id`.
-- Ningún chunk supera 350 tokens ni cruza páginas.
-- La matriz tiene una fila por chunk, 384 columnas con el modelo propuesto, tipo `float32`, valores finitos y norma L2 aproximada a 1.
-- Una consulta devuelve evidencia con página y tenant correctos.
-- Después de descargar el modelo una vez, `--offline` funciona sin acceder a servicios externos.
-
-## Resultado de la validación inicial
-
-Validación ejecutada el 17 de septiembre de 2026 con `sentence-transformers 5.7.0` y el ejemplo versionado:
-
-- 3 chunks para 3 páginas, sin cruces de página.
-- Matriz de forma `[3, 384]`, tipo `float32`, valores finitos y norma L2 igual a 1 en todas las filas.
-- Consulta offline: `¿Qué debo hacer si la API responde con error 429?`.
-- Primer resultado: página 2, puntaje `0.842809`, con la instrucción sobre `Retry-After`, espera exponencial y tres reintentos.
-- Las 4 pruebas unitarias finalizaron correctamente.
-
-El puntaje sirve para ordenar resultados dentro del mismo modelo; no se usa como probabilidad ni como umbral definitivo de calidad.
+- El JSON se valida contra el contrato v1.0 antes del chunking.
+- Una sección extensa se divide sin mezclarse con otra sección.
+- El título, nivel y rango de páginas se conservan en cada chunk.
+- La matriz contiene una fila por chunk y valores finitos normalizados.
+- La consulta local devuelve evidencia con tenant, sección y páginas correctos.
+- El JSON real generado desde el PDF de prueba atraviesa Ingestión y llega al chunker sin adaptaciones manuales.

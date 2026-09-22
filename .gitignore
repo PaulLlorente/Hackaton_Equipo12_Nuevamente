@@ -1,10 +1,20 @@
-# Entornos y cachés locales
+# Entornos virtuales y cachés
 .venv/
+venv/
+env/
 __pycache__/
 *.py[cod]
 .pytest_cache/
 
-# Artefactos generados por el PoC local
+# Archivos de prueba locales
+*.pdf
+!docs/test_pdf/Guia de Usuario - Oracle AI Success Navigator.pdf
+
+# JSONs generados por pruebas
+tests/*.json
+resultado*.json
+
+# Artefactos generados por el PoC RAG
 artifacts/
 
 # Secretos y configuración local

@@ -11,17 +11,19 @@ import numpy as np
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
 from nuevamente_rag.pipeline import (  # noqa: E402
     CleanDocument,
-    Page,
+    DocumentSection,
     TokenAwareChunker,
     build_index,
     load_clean_document,
     normalize_extracted_text,
     search_index,
 )
+from src.ingestion.main import procesar_documento  # noqa: E402
 
 
 class RegexTokenizer:
@@ -63,33 +65,57 @@ class PipelineTests(unittest.TestCase):
             "Configuración inicial\n\nSegundo párrafo.",
         )
 
-    def test_json_contract_and_page_metadata_are_preserved(self) -> None:
+    def test_contract_preserves_sections_source_and_extraction_metadata(self) -> None:
         document = load_clean_document(ROOT / "data/samples/clean_document.example.json")
         self.assertEqual(document.document_id, "manual-demo-nuevamente")
         self.assertEqual(document.tenant_id, "equipo-12-demo")
-        self.assertEqual([page.page_number for page in document.pages], [1, 2, 3])
+        self.assertEqual(document.source["total_pages"], 3)
+        self.assertEqual(document.extraction["parser"], "PyMuPDF")
+        self.assertEqual(len(document.sections), 3)
+        self.assertEqual(document.sections[1].section_title, "Límites y reintentos")
+        self.assertEqual(document.sections[1].page_start, 2)
+        self.assertTrue(document.sections[1].text.startswith("Límites y reintentos"))
 
-    def test_chunking_has_overlap_and_never_crosses_pages(self) -> None:
+    def test_invalid_page_range_is_rejected(self) -> None:
+        source = json.loads(
+            (ROOT / "data/samples/clean_document.example.json").read_text(encoding="utf-8")
+        )
+        source["contenido_estructurado"][0]["pagina_inicio"] = 2
+        source["contenido_estructurado"][0]["pagina_fin"] = 1
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "invalid.json"
+            path.write_text(json.dumps(source), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "pagina_fin"):
+                load_clean_document(path)
+
+    def test_chunking_has_overlap_and_never_crosses_sections(self) -> None:
         text = " ".join(f"palabra{i}." for i in range(90))
         document = CleanDocument(
             document_id="doc-1",
             tenant_id="tenant-1",
             title="Prueba",
             language="es",
-            pages=(Page(1, text), Page(2, "otra página con evidencia")),
-            source={},
-            extraction={},
+            sections=(
+                DocumentSection(0, 1, "Sección extensa", 1, 2, text),
+                DocumentSection(1, 2, "Otra sección", 3, 3, "otra evidencia"),
+            ),
+            source={"total_pages": 3},
+            extraction={"advertencias": []},
         )
         chunks = TokenAwareChunker(
             RegexTokenizer(), chunk_tokens=32, overlap_tokens=8, boundary_window_ratio=0
         ).split(document)
-        page_one = [chunk for chunk in chunks if chunk.page_start == 1]
-        self.assertGreater(len(page_one), 1)
-        self.assertEqual(page_one[1].token_start, page_one[0].token_end - 8)
-        self.assertTrue(all(chunk.page_start == chunk.page_end for chunk in chunks))
+        first_section = [chunk for chunk in chunks if chunk.section_index == 0]
+        self.assertGreater(len(first_section), 1)
+        self.assertEqual(
+            first_section[1].token_start,
+            first_section[0].token_end - 8,
+        )
+        self.assertTrue(all(chunk.page_start == 1 for chunk in first_section))
+        self.assertTrue(all(chunk.page_end == 2 for chunk in first_section))
         self.assertTrue(all(chunk.token_count <= 32 for chunk in chunks))
 
-    def test_artifacts_are_compatible_and_queryable(self) -> None:
+    def test_artifacts_are_chroma_compatible_and_queryable(self) -> None:
         document = load_clean_document(ROOT / "data/samples/clean_document.example.json")
         embedder = DeterministicEmbedder()
         with tempfile.TemporaryDirectory() as temporary:
@@ -107,8 +133,9 @@ class PipelineTests(unittest.TestCase):
                 for line in (output / "chunks.jsonl").read_text(encoding="utf-8").splitlines()
             ]
             self.assertEqual(vectors.shape, (len(chunks), 3))
+            self.assertEqual(manifest["document"]["section_count"], 3)
             self.assertEqual(manifest["embeddings"]["dtype"], "float32")
-            self.assertEqual(manifest["vector_store_mapping"]["ids"], "chunks.jsonl[].chunk_id")
+            self.assertEqual(chunks[1]["metadata"]["section_title"], "Límites y reintentos")
 
             results = search_index(
                 output,
@@ -118,7 +145,29 @@ class PipelineTests(unittest.TestCase):
                 tenant_id="equipo-12-demo",
             )
             self.assertEqual(results[0]["page_start"], 2)
+            self.assertEqual(results[0]["section_title"], "Límites y reintentos")
             self.assertIn("429", results[0]["text"])
+
+    def test_real_ingestion_output_flows_into_rag_chunker(self) -> None:
+        pdf = ROOT / "docs/test_pdf/Guia de Usuario - Oracle AI Success Navigator.pdf"
+        result = procesar_documento(
+            ruta_archivo=str(pdf),
+            tenant_id="oracle_hackathon_test",
+            document_id="doc_test_001",
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "resultado_ingestion.json"
+            path.write_text(result, encoding="utf-8")
+            document = load_clean_document(path)
+            chunks = TokenAwareChunker(
+                RegexTokenizer(), chunk_tokens=64, overlap_tokens=8
+            ).split(document)
+
+        self.assertGreater(len(document.sections), 30)
+        self.assertGreater(len(chunks), len(document.sections))
+        self.assertTrue(all(chunk.tenant_id == "oracle_hackathon_test" for chunk in chunks))
+        self.assertTrue(any(chunk.page_end > chunk.page_start for chunk in chunks))
+        self.assertTrue(any(chunk.section_title for chunk in chunks))
 
 
 if __name__ == "__main__":
