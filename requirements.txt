@@ -4,3 +4,6 @@ pydantic>=2.10,<3
 pymupdf>=1.25,<2
 pytest>=8.3,<10
 sentence-transformers>=5.0,<6
+fastapi==0.141.1
+python-multipart==0.0.32
+uvicorn==0.53.0
