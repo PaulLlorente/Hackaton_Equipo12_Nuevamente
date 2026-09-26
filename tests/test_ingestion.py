@@ -7,24 +7,23 @@ from src.ingestion.main import procesar_documento
 
 
 def test_extraccion_documento():
-    ruta_prueba = (
+    pdf_bytes = (
         Path(__file__).parent.parent
         / "docs"
         / "test_pdf"
         / "Guia de Usuario - Oracle AI Success Navigator.pdf"
-    )
+    ).read_bytes()  # bytes (archivo cargado en memoria)
 
     ruta_schema = (
-        Path(__file__).parent.parent
-        / "contracts"
-        / "clean_document.schema.json"
+        Path(__file__).parent.parent / "contracts" / "clean_document.schema.json"
     )
 
     # 1. Ejecutamos la función principal
     json_resultado = procesar_documento(
-        ruta_archivo=str(ruta_prueba),
+        source=pdf_bytes,
         tenant_id="oracle_hackathon_test",
         document_id="doc_test_001",
+        nombre_archivo="Guia de Usuario - Oracle AI Success Navigator.pdf",
     )
 
     # 2. Comprobamos que haya resultado
@@ -50,10 +49,7 @@ def test_extraccion_documento():
     )
 
     # 7. Guardamos el resultado generado
-    ruta_salida = (
-        Path(__file__).parent
-        / "resultado_test_ingestion.json"
-    )
+    ruta_salida = Path(__file__).parent / "resultado_test_ingestion.json"
 
     ruta_salida.write_text(
         json_resultado,

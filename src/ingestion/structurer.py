@@ -1,10 +1,9 @@
 from collections import Counter
-from typing import List
 from .schema import FragmentoTexto, SeccionContenido
 
 
 # función para detectar el tamaño de fuente más común en los fragmentos de texto, que se usará como referencia para determinar los niveles de encabezado
-def _detectar_tamano_cuerpo(fragmentos: List[FragmentoTexto]) -> float:
+def _detectar_tamano_cuerpo(fragmentos: list[FragmentoTexto]) -> float:
 
     tamanos = [round(f.tamano_fuente, 1) for f in fragmentos]
 
@@ -33,14 +32,14 @@ def _determinar_nivel_encabezado(tamano_fuente: float, tamano_cuerpo: float) -> 
 
 
 # funcion principal para estructurar el documento en secciones basadas en los fragmentos de texto extraídos y entrega una lista de SeccionContenido
-def estructurar_documento(fragmentos: List[FragmentoTexto]) -> List[SeccionContenido]:
+def estructurar_documento(fragmentos: list[FragmentoTexto]) -> list[SeccionContenido]:
     if not fragmentos:
         return []
 
     # 1. Calculamos el tamaño base una sola vez
     tamano_cuerpo = _detectar_tamano_cuerpo(fragmentos)
 
-    secciones_finales: List[SeccionContenido] = []
+    secciones_finales: list[SeccionContenido] = []
     seccion_actual: SeccionContenido | None = None
 
     for frag in fragmentos:

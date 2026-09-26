@@ -8,9 +8,11 @@ from .structurer import estructurar_documento
 from .extraction_warnings import detectar_advertencias
 
 
-def procesar_documento(ruta_archivo: str, tenant_id: str, document_id: str) -> str:
+def procesar_documento(
+    source: bytes, nombre_archivo: str, tenant_id: str, document_id: str
+) -> str:
 
-    with DocumentExtractor(ruta_archivo) as extractor:
+    with DocumentExtractor(source, nombre_archivo) as extractor:
         metadata = extractor.get_metadata()
         fragmentos = extractor.extraer_fragmentos()
 
