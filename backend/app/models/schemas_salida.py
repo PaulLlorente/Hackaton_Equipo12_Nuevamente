@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import List,Literal
 
-#Validación y estructura de los datos de salida
+#ESquemas para la validación y estructura de los datos de salida
 class Resumen(BaseModel):
     formato:Literal["resumen"]
     conceptos_clave:str
