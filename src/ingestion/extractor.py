@@ -1,28 +1,24 @@
 import pymupdf
 from .hashing import calcular_sha256
-from typing import List
 from pathlib import Path
 from .schema import FragmentoTexto, MetadataOrigen
 
 
 class DocumentExtractor:
     """
-    Servicio encargado exclusivamente de interactuar con el documento físico.
+    Servicio encargado exclusivamente de interactuar con el documento (se recibe en bytes desde el cliente o servidor). 
     Extrae metadatos y texto crudo.
     """
 
-    # Inicializa el extractor con la ruta del archivo PDF
-    def __init__(self, file_path: str | Path):
-        self.file_path = Path(file_path)
+    # refactorizamos el alcance para recibir el archivo en bytes, evitamos ir a buscarlo en una ruta
+    def __init__(self, source: bytes, nombre_archivo: str ):
 
-        # Validación de existencia del archivo y apertura del documento
-        if not self.file_path.exists():
-            raise FileNotFoundError(f"El archivo {self.file_path} no existe.")
-
-        # ejecutamos la apertura del documento dentro de un bloque try-except para capturar errores de PyMuPDF
+            # ejecutamos la apertura del documento dentro de un bloque try-except para capturar errores de PyMuPDF                
         try:
-            self.documento = pymupdf.open(self.file_path)
-
+            self.documento = pymupdf.open(stream=source, filetype="pdf")
+            self.nombre_archivo = nombre_archivo
+            self.source = source
+                
         except pymupdf.Error as e:
             raise RuntimeError(f"Error de PyMuPDF al abrir el documento: {e}") from e
 
@@ -36,14 +32,14 @@ class DocumentExtractor:
     # Propiedades para obtener la extensión del archivo y el total de páginas
     @property
     def extension(self) -> str:
-        return self.file_path.suffix[1:]
+        return Path(self.nombre_archivo).suffix[1:]
 
     @property
     def total_paginas(self) -> int:
         return self.documento.page_count
 
     # Método para extraer fragmentos de texto del documento
-    def extraer_fragmentos(self) -> List[FragmentoTexto]:
+    def extraer_fragmentos(self) -> list[FragmentoTexto]:
 
         fragmentos = []
 
@@ -79,7 +75,7 @@ class DocumentExtractor:
                         pagina=numero_pagina,
                         negrita=bool(primer_span.get("flags", 0) & 16),
                         fuente=primer_span.get("font", None),
-                        bbox=tuple(block.get("bbox"))  # ← bbox del BLOQUE completo
+                        bbox=tuple(block.get("bbox")),  # ← bbox del BLOQUE completo
                     )
                 )
 
@@ -89,7 +85,7 @@ class DocumentExtractor:
     def get_metadata(self) -> MetadataOrigen:
 
         return MetadataOrigen(
-            nombre_archivo=Path(self.file_path).stem,
+            nombre_archivo= self.nombre_archivo,
             total_paginas=self.total_paginas,
-            sha256=calcular_sha256(self.file_path),
+            sha256=calcular_sha256(self.source),
         )

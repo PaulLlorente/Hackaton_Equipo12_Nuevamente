@@ -1,10 +1,10 @@
 # Decisiones del modulo de ingestion
 
-**Contrato:** v1.0
-**Ultima revision:** 2026-09-20
-**Responsable de mi modulo:** Brayan Camilo Lopez (`Discord: @arctica47`)
-**Consumidores de mi salida:** AI Engineer, RAG Data/Vector Store y API Core
-**Archivo actualizable:** uso este documento para registrar mis decisiones; no reemplaza el codigo.
+- **Contrato:** v1.0
+- **Ultima revision:** 2026-09-25
+- **Responsable de mi modulo:** (Yo) Brayan Camilo Lopez (`Discord: @Brayan López`)
+- **Consumidores de mi salida:** AI Engineer, RAG Data/Vector Store y API Core
+- **Archivo actualizable:** uso este documento para registrar mis decisiones; no reemplaza el codigo.
 
 ## 1. Alcance y responsabilidad
 
@@ -27,14 +27,16 @@ consulta.
 | Area | Estado | Evidencia local | Proximo paso |
 | --- | --- | --- | --- |
 | Extraccion PDF | Implementada y validada | `src/ingestion/extractor.py` | Validar con mas PDFs tecnicos |
+| Entrada por bytes | Implementada (D-010) | `extractor.py`, `main.py` | Listo para integracion con FastAPI |
 | Parser PDF | PyMuPDF confirmado | `requirements.txt`, `schema.py` | Confirmar con PDFs escaneados |
-| Hash del archivo | Implementado | `src/ingestion/hashing.py` | Verificado contra archivo conocido |
+| Hash del archivo | Refactorizado a bytes en memoria | `src/ingestion/hashing.py` | Funcional |
 | Modelo de salida | Definido con Pydantic | `src/ingestion/schema.py` | Funcional |
 | Advertencias | Implementadas | `extraction_warnings.py` detecta paginas sin texto | Agregar errores y casos OCR |
 | Estructuracion por encabezados | Implementada y refinada | `src/ingestion/structurer.py` | Funcional con extraccion por bloques |
-| Orquestacion del flujo | Implementada y funcional | `src/ingestion/main.py` | Funcional |
+| Orquestacion del flujo | Implementada y funcional | `src/ingestion/main.py` | Recibe `source: bytes` y `nombre_archivo: str` |
 | Prueba automatica | Implementada con pytest y JSON Schema | `tests/test_ingestion.py` valida JSON, secciones, paginas y contrato | Ejecutada y verde |
-| Contrato JSON formal | Implementado | `contracts/clean_document.schema.json` | Compartir con Vanessa y Pereira |
+| Contrato JSON formal | Implementado | `contracts/clean_document.schema.json` | Compartido con Vanessa y Pereira |
+| Tipado moderno | Migrado a `list[]` nativo (D-011) | Todos los modulos | Funcional |
 | Multi-parser | Diseñado, no implementado | Contrato comun documentado | Terminar PDF primero |
 
 Este estado distingue entre el codigo que ya escribi y el comportamiento que ya
@@ -47,8 +49,8 @@ de AI lo use como referencia.
 | Archivo | Responsabilidad | Analogia |
 | --- | --- | --- |
 | `schema.py` | Define las estructuras de datos y el documento final | Los formularios oficiales que todos deben llenar |
-| `extractor.py` | Abre el PDF y produce un fragmento por bloque con pagina, fuente y tamaño | El lector que transcribe lo que encuentra respetando los parrafos |
-| `hashing.py` | Calcula la huella SHA-256 del archivo original | La huella digital del documento |
+| `extractor.py` | Recibe el PDF en bytes y produce un fragmento por bloque con pagina, fuente y tamaño | El lector que recibe el libro en la mano y transcribe lo que encuentra |
+| `hashing.py` | Calcula la huella SHA-256 directamente sobre los bytes en memoria | La huella digital del documento |
 | `extraction_warnings.py` | Detecta paginas que no produjeron texto | El tablero que enciende una alerta |
 | `structurer.py` | Agrupa fragmentos y estima niveles de encabezado | El archivista que separa el texto por temas |
 | `main.py` | Coordina el flujo y serializa el resultado | El coordinador que pasa el expediente por cada ventanilla |
@@ -176,12 +178,17 @@ documento y serializo una salida consistente.
 de salida. Evita entregar una ficha incompleta, pero no decide si la informacion
 extraida es correcta.
 
-### D-005: SHA-256 para identidad del archivo
+### D-005: SHA-256 para identidad del archivo *(actualizada)*
 
-**Decision:** calculo el hash leyendo el archivo en bloques de 1 MiB.
+**Decision original:** calculo el hash leyendo el archivo en bloques de 1 MiB
+desde disco.
 
-**Motivo:** puedo identificar el contenido original sin cargarlo completo en
-memoria y detectar posibles duplicados.
+**Decision actualizada (D-010 explica el motivo):** calculo el hash directamente
+sobre los bytes que ya estan en memoria. Como el archivo llega completo desde
+FastAPI (o desde el test con `.read_bytes()`), no necesito abrir ninguna ruta
+ni leer en bloques.
+
+**Motivo:** puedo identificar el contenido original y detectar posibles duplicados.
 
 **Analogia:** el hash es una huella digital del PDF. Dos archivos con el mismo
 nombre pueden ser distintos; la huella permite diferenciarlos.
@@ -275,19 +282,68 @@ pieza antes de que salga. El JSON Schema es el certificado de calidad que
 acompana el paquete y que el cliente puede verificar por su cuenta sin conocer
 el proceso interno.
 
+### D-010: entrada por bytes en lugar de ruta de disco
+
+**Problema encontrado:** en produccion el PDF llega desde el frontend a traves
+de la API de FastAPI. FastAPI lo tiene en memoria como `bytes` (mediante
+`await file.read()`). Si mi modulo solo acepta una ruta de disco, Erick tendria
+que guardar el archivo en el servidor y luego pasarme la ruta — un viaje de ida
+y vuelta al disco completamente innecesario.
+
+**Decision:** refactorizar `DocumentExtractor` para recibir `source: bytes` y
+`nombre_archivo: str` en lugar de `file_path: str | Path`. PyMuPDF soporta
+apertura desde memoria con `pymupdf.open(stream=source, filetype="pdf")`.
+
+**Archivos modificados:**
+- `extractor.py`: constructor recibe `(source: bytes, nombre_archivo: str)`.
+  Se guarda `self.source` para calcular el hash posteriormente.
+- `hashing.py`: recibe `bytes` directamente y calcula el SHA-256 sin abrir
+  ningun archivo ni leer en bloques.
+- `main.py`: la funcion `procesar_documento` ahora recibe `source: bytes` y
+  `nombre_archivo: str` en lugar de `ruta_archivo: str`.
+- `test_ingestion.py`: lee el PDF de prueba con `.read_bytes()` y pasa los
+  bytes al pipeline.
+
+**Consecuencia en el contrato de salida:** ninguna. El JSON que entrego sigue
+siendo identico. Este cambio es puramente interno: como entra el PDF a mi modulo,
+no como sale la informacion.
+
+**Analogia:** antes le dabamos al lector la direccion de la biblioteca y el
+numero de estante para que fuera a buscar el libro. Ahora le entregamos el libro
+directamente en las manos. No tiene que ir a ninguna parte — ya tiene el
+contenido listo para leer.
+
+### D-011: migracion a tipado moderno `list[]`
+
+**Decision:** reemplazar `from typing import List` por el tipo nativo `list[]`
+en todos los modulos: `extractor.py`, `structurer.py`, `extraction_warnings.py`,
+`schema.py`.
+
+**Motivo:** desde Python 3.9, los tipos genericos nativos (`list`, `dict`, `tuple`)
+pueden usarse directamente en anotaciones de tipo sin importar nada de `typing`.
+El proyecto usa Python 3.14, asi que el import de `List` era innecesario.
+
+**Archivos modificados:** todos los que usaban `from typing import List`. Se
+elimino el import y se reemplazo `List[X]` por `list[X]`.
+
+**Analogia:** es como dejar de usar una extension del navegador que hacia algo
+que el navegador ahora ya hace de fabrica. La extension sigue funcionando, pero
+ya no tiene sentido cargarla.
+
 ## 6. Flujo implementado y frontera con el equipo
 
-1. `DocumentExtractor` valida la ruta y abre el PDF.
-2. Recorro paginas, bloques y spans; por cada bloque de texto genero un
+1. `procesar_documento` recibe `source: bytes` y `nombre_archivo: str`.
+2. `DocumentExtractor` abre el PDF desde los bytes en memoria con PyMuPDF.
+3. Recorro paginas, bloques y spans; por cada bloque de texto genero un
    `FragmentoTexto` con el texto completo, el tamaño de fuente del primer span,
    la bandera de negrita, la fuente y el `bbox` del bloque.
-3. `calcular_sha256` calcula la huella del archivo original en bloques de 1 MiB.
-4. `detectar_advertencias` detecta paginas que no produjeron ningun fragmento.
-5. `estructurar_documento` clasifica cada fragmento como H1, H2 o parrafo usando
+4. `calcular_sha256` calcula la huella directamente sobre los bytes en memoria.
+5. `detectar_advertencias` detecta paginas que no produjeron ningun fragmento.
+6. `estructurar_documento` clasifica cada fragmento como H1, H2 o parrafo usando
    ratios respecto al tamaño de fuente mas frecuente del documento.
-6. `DocumentoIngestado` reune metadatos, advertencias y secciones.
-7. `model_dump_json` serializa el documento para el consumidor de AI.
-8. `tests/test_ingestion.py` valida el JSON generado contra el schema formal.
+7. `DocumentoIngestado` reune metadatos, advertencias y secciones.
+8. `model_dump_json` serializa el documento para el consumidor de AI.
+9. `tests/test_ingestion.py` valida el JSON generado contra el schema formal.
 
 El PR #8 actualmente describe una entrada por paginas (`page_number`, `text`).
 Al integrarlo, debo conservar `tenant_id`, `document_id`, seccion,
@@ -317,6 +373,9 @@ porque existe una clase: necesito una prueba o un ejemplo que demuestre el flujo
 | 2026-09-20 | Refactor: extraccion por bloques | `extractor.py`, `structurer.py` | PyMuPDF ya agrupa lineas en bloques logicos; extraer por bloque elimina la necesidad de fusion manual | Implementado (D-008) |
 | 2026-09-20 | Contrato JSON Schema formal | `contracts/clean_document.schema.json` | El schema es el reglamento publico que cualquier lenguaje puede validar | Implementado (D-009) |
 | 2026-09-20 | Prueba contra contrato formal | `tests/test_ingestion.py` | pytest valida el JSON generado contra el schema; la prueba pasa verde | Implementado |
+| 2026-09-25 | Refactor: entrada por bytes | `extractor.py`, `hashing.py`, `main.py`, `test_ingestion.py` | El modulo recibe bytes en memoria en vez de ruta de disco; elimina I/O innecesario para integracion con FastAPI | Implementado (D-010) |
+| 2026-09-25 | Migracion a `list[]` nativo | Todos los modulos | Se elimino `from typing import List` y se uso `list[]` nativo de Python 3.9+ | Implementado (D-011) |
+| 2026-09-25 | Hash desde bytes en memoria | `hashing.py` | `calcular_sha256` recibe `bytes` directamente; ya no abre archivos ni lee en bloques | Implementado (actualiza D-005) |
 
 ## 9. Como actualizo esta documentacion
 
