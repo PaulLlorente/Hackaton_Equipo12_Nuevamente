@@ -14,6 +14,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("VectorStoreRAG")
 
+
 class Config:
     """Validador de variables de entorno."""
     load_dotenv()
@@ -26,6 +27,7 @@ class Config:
             raise ValueError("La API Key no existe o es demasiado corta.")
         return SecretStr(api_key)
 
+
 class MotorVectorialRAG:
     """Motor principal para manejo de ChromaDB y Gemini."""
 
@@ -33,7 +35,7 @@ class MotorVectorialRAG:
         try:
             self.api_key = Config.obtener_google_api_key()
             self.embeddings = GoogleGenerativeAIEmbeddings(
-                model="models/gemini-embedding-2", #Modelo vigente
+                model="models/gemini-embedding-2",  # Modelo vigente
                 google_api_key=self.api_key
             )
 
@@ -105,4 +107,44 @@ class MotorVectorialRAG:
             )
         except Exception as error_retriever:
             logger.error(f"Fallo al recuperar contexto: {error_retriever}")
+            raise
+
+    def ingestar_y_vectorizar_memoria(self, chunks_data: list, tenant_id: str) -> Chroma:
+        """NUEVO: Recibe una lista de chunks directamente en memoria y los indexa."""
+        if not chunks_data:
+            logger.error("La lista de chunks está vacía.")
+            raise ValueError("No hay datos para vectorizar.")
+
+        documentos_langchain = []
+        ids_chunks = []
+
+        logger.info(f"Vectorizando {len(chunks_data)} chunks en memoria para el tenant {tenant_id}...")
+
+        try:
+            for chunk_data in chunks_data:
+                # Aseguramos que el tenant_id viaje en los metadatos
+                metadatos = chunk_data.get("metadata", {})
+                metadatos["tenant_id"] = tenant_id
+
+                doc = Document(
+                    page_content=chunk_data["text"],
+                    metadata=metadatos
+                )
+                documentos_langchain.append(doc)
+
+                # Extraer el ID, o generar uno seguro si no viene
+                chunk_id = chunk_data.get("chunk_id", str(hash(chunk_data["text"])))
+                ids_chunks.append(chunk_id)
+
+            vectorstore = Chroma.from_documents(
+                documents=documentos_langchain,
+                embedding=self.embeddings,
+                ids=ids_chunks,
+                persist_directory=self.persist_directory
+            )
+            logger.info("Indexación en memoria completada exitosamente.")
+            return vectorstore
+
+        except Exception as error_vectorizacion:
+            logger.error(f"Error crítico en vectorización en memoria: {error_vectorizacion}")
             raise
