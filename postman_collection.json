@@ -1,0 +1,82 @@
+{
+  "info": {
+    "_postman_id": "b3e64db8-9999-4c91-a1e4-nuevamente001",
+    "name": "NuevaMente RAG API",
+    "description": "Colección oficial de endpoints para Ingestión y Búsqueda Semántica del Hackathon Equipo 12.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "Ingestar Documento",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": []
+            },
+            {
+              "key": "tenant_id",
+              "value": "tenant-demo-12",
+              "type": "text"
+            },
+            {
+              "key": "document_id",
+              "value": "doc-001",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/ingest",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "ingest"]
+        }
+      }
+    },
+    {
+      "name": "Búsqueda Semántica (Search)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"¿Cuáles son los puntos clave del documento?\",\n  \"index_dir\": \"data/index\",\n  \"top_k\": 3,\n  \"tenant_id\": \"tenant-demo-12\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/search",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "search"]
+        }
+      }
+    }
+  ]
+}
