@@ -1,6 +1,4 @@
 import os
-import shutil
-from pathlib import Path
 from typing import Optional
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from pydantic import BaseModel
@@ -34,15 +32,11 @@ async def ingest_document(
     document_id: str = Form(...)
 ):
     try:
-        temp_dir = Path("data/uploads")
-        temp_dir.mkdir(parents=True, exist_ok=True)
-        file_path = temp_dir / file.filename
-
-        with file_path.open("wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        contenido_bytes = await file.read()
 
         resultado = procesar_documento(
-            ruta_archivo=str(file_path),
+            source=contenido_bytes,
+            nombre_archivo=file.filename,
             tenant_id=tenant_id,
             document_id=document_id
         )
