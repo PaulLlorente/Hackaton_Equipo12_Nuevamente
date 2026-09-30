@@ -60,3 +60,6 @@ Verificación de disponibilidad operativa del servicio.
     "status": "ok",
     "service": "NuevaMente API"
   }
+
+## Documentación de Integración
+Para instrucciones de ejecución local y variables de entorno, consulta [docs/API_INTEGRACION.md](docs/API_INTEGRACION.md).
