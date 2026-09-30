@@ -1,10 +1,9 @@
-from typing import List
 from .schema import Advertencia, FragmentoTexto
 
 
 def detectar_advertencias(
-    fragmentos: List[FragmentoTexto], total_paginas: int
-) -> List[Advertencia]:
+    fragmentos: list[FragmentoTexto], total_paginas: int
+) -> list[Advertencia]:
 
     advertencias = []
 

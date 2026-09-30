@@ -39,3 +39,24 @@ graph TD
     D --> E[Validación de Fidelidad y Esquema JSON]
     E --> F[Interfaz Interactiva Streamlit]
     E --> G[(OCI Object Storage Always Free)]
+## 🚀 API de Ingestión y Búsqueda Semántica (RAG)
+
+El backend expone una API REST construida sobre **FastAPI** que encapsula el pipeline de normalización, chunking consciente de tokens y recuperación densa basada en representaciones vectoriales multilingües.
+
+### Documentación Interactiva
+Con el servidor levantado, la documentación OpenAPI interactiva está disponible en:
+- **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
+
+---
+
+### Endpoints Disponibles
+
+#### 1. `GET /health`
+Verificación de disponibilidad operativa del servicio.
+* **Respuesta (`200 OK`)**:
+  ```json
+  {
+    "status": "ok",
+    "service": "NuevaMente API"
+  }

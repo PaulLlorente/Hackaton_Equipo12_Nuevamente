@@ -1,4 +1,3 @@
-from typing import List
 from pydantic import BaseModel, Field
 from datetime import datetime, timezone
 import pymupdf
@@ -24,7 +23,7 @@ class ExtraccionInfo(BaseModel):
     parser: str = "PyMuPDF"  # Por defecto, usamos PyMuPDF
     version_parser: str = pymupdf.__version__
     # Versión de PyMuPDF
-    advertencias: List[Advertencia] = Field(
+    advertencias: list[Advertencia] = Field(
         default_factory=list
     )  # Array vacío por defecto
 
@@ -76,4 +75,4 @@ class DocumentoIngestado(BaseModel):
     fecha_ingesta: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     metadata_origen: MetadataOrigen
     extraccion: ExtraccionInfo = Field(default_factory=ExtraccionInfo)
-    contenido_estructurado: List[SeccionContenido] = Field(default_factory=list)
+    contenido_estructurado: list[SeccionContenido] = Field(default_factory=list)
