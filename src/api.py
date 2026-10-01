@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from src.ingestion.main import procesar_documento
 from src.nuevamente_rag.pipeline import search_index, SentenceTransformerEmbedder
+from src.nuevamente_rag.vector_store import MotorVectorialRAG
 
 app = FastAPI(
     title="NuevaMente RAG API",
@@ -14,53 +15,25 @@ app = FastAPI(
     description="API de Ingestión y Búsqueda Semántica con JWT Supabase"
 )
 
-# ---------------------------------------------------------------------------
-# Seguridad y JWT Supabase
-# ---------------------------------------------------------------------------
-SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "super-secret-jwt-token-placeholder")
-ALGORITHM = "HS256"
-
+# --- Configuración de Seguridad JWT ---
+SUPABASE_JWT_SECRET: str = str(os.getenv("SUPABASE_JWT_SECRET", "super-secret-jwt-token-placeholder"))
+ALGORITHMS: list[str] = ["HS256"]
 security = HTTPBearer()
 
-class TokenData(BaseModel):
-    user_id: str
-    rol: str = "usuario"
-    tenant_id: Optional[str] = None
-
-def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)) -> TokenData:
+def verificar_token(credentials: HTTPAuthorizationCredentials = Security(security)):
+    """Valida el token de Supabase en cada petición protegida."""
     token = credentials.credentials
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Token inválido o expirado",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
     try:
-        payload = jwt.decode(
-            token,
-            SUPABASE_JWT_SECRET,
-            algorithms=[ALGORITHM],
-            options={"verify_aud": False}
-        )
-        user_id: str = payload.get("sub")
-        if not user_id:
-            raise credentials_exception
-
-        rol: str = (
-            payload.get("user_metadata", {}).get("rol")
-            or payload.get("rol", "usuario")
-        )
-        tenant_id: Optional[str] = (
-            payload.get("user_metadata", {}).get("tenant_id")
-            or payload.get("tenant_id")
-        )
-
-        return TokenData(user_id=user_id, rol=rol, tenant_id=tenant_id)
+        payload = jwt.decode(token, SUPABASE_JWT_SECRET, algorithms=ALGORITHMS, options={"verify_aud": False})
+        return payload
     except JWTError:
-        raise credentials_exception
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token inválido, alterado o expirado",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
-# ---------------------------------------------------------------------------
-# Inicialización y Modelos
-# ---------------------------------------------------------------------------
+# --- Inicialización de Modelos ---
 embedder = SentenceTransformerEmbedder()
 
 class SearchRequest(BaseModel):
@@ -69,9 +42,6 @@ class SearchRequest(BaseModel):
     top_k: int = 3
     tenant_id: Optional[str] = None
 
-# ---------------------------------------------------------------------------
-# Endpoints
-# ---------------------------------------------------------------------------
 @app.get("/health")
 def health_check():
     return {"status": "ok", "service": "NuevaMente API"}
@@ -81,30 +51,38 @@ async def ingest_document(
     file: UploadFile = File(...),
     tenant_id: str = Form(...),
     document_id: str = Form(...),
-    current_user: TokenData = Depends(get_current_user)
+    # Descomenta la siguiente línea cuando quieras activar la seguridad JWT para probar
+    # _usuario: dict = Depends(verificar_token)
 ):
-    if current_user.rol != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Permisos insuficientes: solo rol admin puede realizar ingesta"
-        )
-
     try:
+        # 1. LECTURA EN MEMORIA (Asíncrona y sin tocar el disco duro)
         contenido_bytes = await file.read()
 
-        resultado = procesar_documento(
+        # file.filename puede ser None en FastAPI; garantizamos que siempre sea un string
+        nombre_archivo_seguro: str = file.filename or "documento_desconocido.pdf"
+
+        # 2. EXTRACCIÓN (Recibe el string gigante limpio desde el PDF)
+        texto_crudo = procesar_documento(
             source=contenido_bytes,
-            nombre_archivo=file.filename,
+            nombre_archivo=nombre_archivo_seguro,
             tenant_id=tenant_id,
             document_id=document_id
+        )
+
+        # 3. DELEGACIÓN AL MOTOR VECTORIAL RAG (La API no hace chunking)
+        motor_rag = MotorVectorialRAG()
+        motor_rag.ingestar_y_vectorizar_memoria(
+            texto_crudo=texto_crudo,
+            tenant_id=tenant_id,
+            document_id=document_id,
+            origen=nombre_archivo_seguro
         )
 
         return {
             "status": "success",
             "document_id": document_id,
             "tenant_id": tenant_id,
-            "processed_by": current_user.user_id,
-            "resultado": resultado
+            "mensaje": "Documento procesado, segmentado y vectorizado correctamente."
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -112,22 +90,20 @@ async def ingest_document(
 @app.post("/api/search")
 def search(
     request: SearchRequest,
-    current_user: TokenData = Depends(get_current_user)
+    # Descomenta la siguiente línea cuando quieras activar la seguridad JWT
+    # _usuario: dict = Depends(verificar_token)
 ):
     try:
-        tenant = request.tenant_id or current_user.tenant_id
-
         results = search_index(
             index_dir=request.index_dir,
             query=request.query,
             embedder=embedder,
             top_k=request.top_k,
-            tenant_id=tenant
+            tenant_id=request.tenant_id
         )
         return {
             "status": "success",
             "query": request.query,
-            "user_id": current_user.user_id,
             "total_results": len(results),
             "results": results
         }

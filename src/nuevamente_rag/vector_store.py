@@ -7,6 +7,7 @@ from pydantic import SecretStr
 from langchain_core.documents import Document
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_chroma import Chroma
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 logging.basicConfig(
     level=logging.INFO,
@@ -109,33 +110,51 @@ class MotorVectorialRAG:
             logger.error(f"Fallo al recuperar contexto: {error_retriever}")
             raise
 
-    def ingestar_y_vectorizar_memoria(self, chunks_data: list, tenant_id: str) -> Chroma:
-        """NUEVO: Recibe una lista de chunks directamente en memoria y los indexa."""
-        if not chunks_data:
-            logger.error("La lista de chunks está vacía.")
+    def ingestar_y_vectorizar_memoria(self, texto_crudo: str, tenant_id: str, document_id: str = "doc_desconocido",
+                                      origen: str = "origen_desconocido") -> Chroma:
+        """Recibe el texto crudo en memoria, aplica chunking semántico y lo indexa."""
+        if not texto_crudo:
+            logger.error("El texto recibido está vacío.")
             raise ValueError("No hay datos para vectorizar.")
 
-        documentos_langchain = []
-        ids_chunks = []
-
-        logger.info(f"Vectorizando {len(chunks_data)} chunks en memoria para el tenant {tenant_id}...")
+        logger.info(f"Segmentando el texto crudo para el tenant {tenant_id}...")
 
         try:
-            for chunk_data in chunks_data:
-                # Aseguramos que el tenant_id viaje en los metadatos
-                metadatos = chunk_data.get("metadata", {})
-                metadatos["tenant_id"] = tenant_id
+            # 1. CHUNKING (Partimos el texto semánticamente)
+            text_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=1000,
+                chunk_overlap=200,
+                separators=["\n\n", "\n", ".", " ", ""]
+            )
+
+            # Garantizamos que texto_crudo sea string
+            fragmentos_texto = text_splitter.split_text(str(texto_crudo))
+
+            # 2. PREPARACIÓN DE LOS DOCUMENTOS PARA LANGCHAIN
+            documentos_langchain = []
+            ids_chunks = []
+
+            logger.info(f"Vectorizando {len(fragmentos_texto)} chunks en memoria...")
+
+            for indice, fragmento in enumerate(fragmentos_texto):
+                # Construimos los metadatos garantizando el tenant_id
+                metadatos = {
+                    "tenant_id": tenant_id,
+                    "document_id": document_id,
+                    "origen": origen
+                }
 
                 doc = Document(
-                    page_content=chunk_data["text"],
+                    page_content=fragmento,
                     metadata=metadatos
                 )
                 documentos_langchain.append(doc)
 
-                # Extraer el ID, o generar uno seguro si no viene
-                chunk_id = chunk_data.get("chunk_id", str(hash(chunk_data["text"])))
+                # Generamos un ID único para evitar colisiones en ChromaDB
+                chunk_id = f"{document_id}_chunk_{indice}_{str(hash(fragmento))}"
                 ids_chunks.append(chunk_id)
 
+            # 3. INDEXACIÓN EN CHROMADB
             vectorstore = Chroma.from_documents(
                 documents=documentos_langchain,
                 embedding=self.embeddings,
