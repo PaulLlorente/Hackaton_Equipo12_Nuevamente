@@ -3,7 +3,7 @@ from pathlib import Path
 
 import jsonschema
 
-from src.ingestion.main import procesar_documento
+from backend.src.ingestion import procesar_documento
 
 
 def test_extraccion_documento():

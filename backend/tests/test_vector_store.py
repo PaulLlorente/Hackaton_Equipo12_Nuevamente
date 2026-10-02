@@ -6,7 +6,7 @@ import logging
 directorio_raiz = Path(__file__).resolve().parent.parent
 sys.path.append(str(directorio_raiz))
 
-from src.nuevamente_rag.vector_store import MotorVectorialRAG
+from backend.src.nuevamente_rag import MotorVectorialRAG
 logger = logging.getLogger("TestLocal")
 
 

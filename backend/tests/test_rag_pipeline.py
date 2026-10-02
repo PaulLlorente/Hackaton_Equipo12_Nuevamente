@@ -23,7 +23,7 @@ from nuevamente_rag.pipeline import (  # noqa: E402
     normalize_extracted_text,
     search_index,
 )
-from src.ingestion.main import procesar_documento  # noqa: E402
+from backend.src.ingestion import procesar_documento  # noqa: E402
 
 
 class RegexTokenizer:

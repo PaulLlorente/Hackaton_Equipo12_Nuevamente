@@ -67,7 +67,7 @@ Este documento registra el historial de avances, acuerdos de reuniones (Dailys/S
 ### 🎯 Objetivos de la Semana
 - Pruebas de estrés y mitigación de alucinaciones en el pipeline RAG.
 - Validación del checklist obligatorio del Hackathon (OCI, RAG, JSON, UI).
-- Redacción final del `README.md` y grabación de la demo con 3 escenarios.
+- Redacción final del `../README.md` y grabación de la demo con 3 escenarios.
 
 ### 📝 Registro de Avances y Decisiones
 - *(Espacio para documentar al finalizar la semana)*

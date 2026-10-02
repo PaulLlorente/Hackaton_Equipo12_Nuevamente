@@ -26,16 +26,16 @@ consulta.
 
 | Area | Estado | Evidencia local | Proximo paso |
 | --- | --- | --- | --- |
-| Extraccion PDF | Implementada y validada | `src/ingestion/extractor.py` | Validar con mas PDFs tecnicos |
+| Extraccion PDF | Implementada y validada | `../../backend/src` | Validar con mas PDFs tecnicos |
 | Entrada por bytes | Implementada (D-010) | `extractor.py`, `main.py` | Listo para integracion con FastAPI |
-| Parser PDF | PyMuPDF confirmado | `requirements.txt`, `schema.py` | Confirmar con PDFs escaneados |
-| Hash del archivo | Refactorizado a bytes en memoria | `src/ingestion/hashing.py` | Funcional |
-| Modelo de salida | Definido con Pydantic | `src/ingestion/schema.py` | Funcional |
+| Parser PDF | PyMuPDF confirmado | `../../backend/requirements.txt`, `schema.py` | Confirmar con PDFs escaneados |
+| Hash del archivo | Refactorizado a bytes en memoria | `../../backend/src` | Funcional |
+| Modelo de salida | Definido con Pydantic | `../../backend/src` | Funcional |
 | Advertencias | Implementadas | `extraction_warnings.py` detecta paginas sin texto | Agregar errores y casos OCR |
-| Estructuracion por encabezados | Implementada y refinada | `src/ingestion/structurer.py` | Funcional con extraccion por bloques |
-| Orquestacion del flujo | Implementada y funcional | `src/ingestion/main.py` | Recibe `source: bytes` y `nombre_archivo: str` |
-| Prueba automatica | Implementada con pytest y JSON Schema | `tests/test_ingestion.py` valida JSON, secciones, paginas y contrato | Ejecutada y verde |
-| Contrato JSON formal | Implementado | `contracts/clean_document.schema.json` | Compartido con Vanessa y Pereira |
+| Estructuracion por encabezados | Implementada y refinada | `../../backend/src` | Funcional con extraccion por bloques |
+| Orquestacion del flujo | Implementada y funcional | `../../backend/src` | Recibe `source: bytes` y `nombre_archivo: str` |
+| Prueba automatica | Implementada con pytest y JSON Schema | `../../backend/tests` valida JSON, secciones, paginas y contrato | Ejecutada y verde |
+| Contrato JSON formal | Implementado | `clean_document.schema.json` | Compartido con Vanessa y Pereira |
 | Tipado moderno | Migrado a `list[]` nativo (D-011) | Todos los modulos | Funcional |
 | Multi-parser | Diseñado, no implementado | Contrato comun documentado | Terminar PDF primero |
 
@@ -55,8 +55,8 @@ de AI lo use como referencia.
 | `structurer.py` | Agrupa fragmentos y estima niveles de encabezado | El archivista que separa el texto por temas |
 | `main.py` | Coordina el flujo y serializa el resultado | El coordinador que pasa el expediente por cada ventanilla |
 | `__init__.py` | Marca el directorio como paquete Python | La etiqueta que permite importar el paquete |
-| `tests/test_ingestion.py` | Ejecuta la prueba con pytest y valida el JSON contra el schema formal | El simulacro de entrega del expediente ante un auditor |
-| `contracts/clean_document.schema.json` | Contrato formal en JSON Schema que cualquier lenguaje puede validar | El reglamento publico escrito que todos los equipos pueden leer |
+| `../../backend/tests` | Ejecuta la prueba con pytest y valida el JSON contra el schema formal | El simulacro de entrega del expediente ante un auditor |
+| `clean_document.schema.json` | Contrato formal en JSON Schema que cualquier lenguaje puede validar | El reglamento publico escrito que todos los equipos pueden leer |
 
 La separacion es correcta para el MVP: cada pieza tiene una responsabilidad
 comprensible y `main.py` no contiene los detalles de lectura del PDF.
@@ -259,7 +259,7 @@ el principio, y dejar que PyMuPDF te diga donde empieza y termina cada unidad lo
 
 ### D-009: JSON Schema formal como contrato publico del equipo
 
-**Decision:** crear `contracts/clean_document.schema.json` como documento de
+**Decision:** crear `clean_document.schema.json` como documento de
 referencia formal que cualquier lenguaje puede validar.
 
 **Motivo:** Pydantic valida el JSON mientras el codigo Python se ejecuta, pero
@@ -272,7 +272,7 @@ campos extra, `"const": "1.0"` para fijar la version del contrato, `"enum"` para
 los idiomas validos, `"format": "date-time"` para las fechas, y
 `"pattern": "^[a-fA-F0-9]{64}$"` para garantizar que el SHA-256 sea valido.
 
-**Validacion en prueba:** `tests/test_ingestion.py` carga el schema y valida el
+**Validacion en prueba:** `../../backend/tests` carga el schema y valida el
 JSON real generado por el pipeline usando la libreria `jsonschema`. Si el JSON
 no cumple el contrato, la prueba falla antes de que alguien lo descubra en
 produccion.
@@ -343,7 +343,7 @@ ya no tiene sentido cargarla.
    ratios respecto al tamaño de fuente mas frecuente del documento.
 7. `DocumentoIngestado` reune metadatos, advertencias y secciones.
 8. `model_dump_json` serializa el documento para el consumidor de AI.
-9. `tests/test_ingestion.py` valida el JSON generado contra el schema formal.
+9. `../../backend/tests` valida el JSON generado contra el schema formal.
 
 El PR #8 actualmente describe una entrada por paginas (`page_number`, `text`).
 Al integrarlo, debo conservar `tenant_id`, `document_id`, seccion,
@@ -369,10 +369,10 @@ porque existe una clase: necesito una prueba o un ejemplo que demuestre el flujo
 | 2026-09-18 | Advertencias de paginas vacias | `extraction_warnings.py` | Una pagina ausente puede requerir OCR | Parcial |
 | 2026-09-19 | Estructuracion heuristica por ratios | `structurer.py` | El ratio tamaño/cuerpo estima H1, H2 o cuerpo sin depender de valores absolutos | Implementado |
 | 2026-09-19 | Orquestacion del pipeline | `main.py` | Coordina extraccion, advertencias, estructura y JSON | Implementado |
-| 2026-09-19 | Validaciones basicas con pytest | `tests/test_ingestion.py` | Comprueba tipo de origen, version, secciones y paginas | Implementado |
+| 2026-09-19 | Validaciones basicas con pytest | `../../backend/tests` | Comprueba tipo de origen, version, secciones y paginas | Implementado |
 | 2026-09-20 | Refactor: extraccion por bloques | `extractor.py`, `structurer.py` | PyMuPDF ya agrupa lineas en bloques logicos; extraer por bloque elimina la necesidad de fusion manual | Implementado (D-008) |
-| 2026-09-20 | Contrato JSON Schema formal | `contracts/clean_document.schema.json` | El schema es el reglamento publico que cualquier lenguaje puede validar | Implementado (D-009) |
-| 2026-09-20 | Prueba contra contrato formal | `tests/test_ingestion.py` | pytest valida el JSON generado contra el schema; la prueba pasa verde | Implementado |
+| 2026-09-20 | Contrato JSON Schema formal | `clean_document.schema.json` | El schema es el reglamento publico que cualquier lenguaje puede validar | Implementado (D-009) |
+| 2026-09-20 | Prueba contra contrato formal | `../../backend/tests` | pytest valida el JSON generado contra el schema; la prueba pasa verde | Implementado |
 | 2026-09-25 | Refactor: entrada por bytes | `extractor.py`, `hashing.py`, `main.py`, `test_ingestion.py` | El modulo recibe bytes en memoria en vez de ruta de disco; elimina I/O innecesario para integracion con FastAPI | Implementado (D-010) |
 | 2026-09-25 | Migracion a `list[]` nativo | Todos los modulos | Se elimino `from typing import List` y se uso `list[]` nativo de Python 3.9+ | Implementado (D-011) |
 | 2026-09-25 | Hash desde bytes en memoria | `hashing.py` | `calcular_sha256` recibe `bytes` directamente; ya no abre archivos ni lee en bloques | Implementado (actualiza D-005) |
