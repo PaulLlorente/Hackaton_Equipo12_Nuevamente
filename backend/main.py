@@ -1,5 +1,9 @@
 from fastapi import FastAPI
+from backend.src.api.routers import generar_contenido,usuarios
+from backend.src.nuevamente_rag import api
 from fastapi.openapi.docs import get_swagger_ui_html
+
+#levantar servidor local  "uvicorn backend.main:app --reload"
 
 # 1. Al crear la app, deshabilitas la documentación por defecto
 app = FastAPI(
@@ -10,6 +14,17 @@ app = FastAPI(
 )
 
 # ... (aquí van tus app.include_router(...) que ya tienes) ...
+
+#Apis de generacion de contenido
+app.include_router(generar_contenido.router)
+
+#Api de ingestion
+app.include_router(api.router)
+
+#Apis que gestionan el login
+app.include_router(usuarios.router)
+
+
 
 # 2. Creas una ruta manual para inyectar el tema oscuro
 @app.get("/docs", include_in_schema=False)
