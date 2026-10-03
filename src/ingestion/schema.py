@@ -1,14 +1,11 @@
 from pydantic import BaseModel, Field
 from datetime import datetime, timezone
-import pymupdf
-
 
 # 1. Metadatos del archivo original
 class MetadataOrigen(BaseModel):
     nombre_archivo: str
     total_paginas: int
     sha256: str
-
 
 # 2. Las advertencias de extracción (Páginas sin texto, etc.)
 class Advertencia(BaseModel):
@@ -20,8 +17,8 @@ class Advertencia(BaseModel):
 
 # 3. Información del proceso de extracción
 class ExtraccionInfo(BaseModel):
-    parser: str = "PyMuPDF"  # Por defecto, usamos PyMuPDF
-    version_parser: str = pymupdf.__version__
+    parser: str
+    version_parser: str
     # Versión de PyMuPDF
     advertencias: list[Advertencia] = Field(
         default_factory=list
@@ -63,6 +60,11 @@ class FragmentoTexto(BaseModel):
         None  # Posición del fragmento dentro de la página: (x0, y0, x1, y1)
     )
 
+# 5. Resultado de la extracción (fragmentos y metadatos)
+class ResultadoExtraccion(BaseModel):
+    fragmentos: list[FragmentoTexto]
+    metadata: MetadataOrigen
+
 
 # 6. El DTO principal (El JSON completo que le entregarre a mi compañera Vanessa)
 class DocumentoIngestado(BaseModel):
@@ -71,7 +73,7 @@ class DocumentoIngestado(BaseModel):
     document_id: str
     titulo: str
     idioma: str = "es"  # Por defecto, asumimos español
-    tipo_origen: str = "pdf"  # Por defecto, asumimos pdf
+    tipo_origen: str
     fecha_ingesta: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     metadata_origen: MetadataOrigen
     extraccion: ExtraccionInfo = Field(default_factory=ExtraccionInfo)
