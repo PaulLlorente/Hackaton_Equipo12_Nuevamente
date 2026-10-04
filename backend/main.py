@@ -1,23 +1,25 @@
 from fastapi import FastAPI
-from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.middleware.cors import CORSMiddleware
 
-# 1. Al crear la app, deshabilitas la documentación por defecto
+# Importación de los routers
+from backend.src.api.routers import generar_contenido
+from backend.src.nuevamente_rag import api as rag_api
+
 app = FastAPI(
     title="NUEVAMENTE EQUIPO 12",
-    description="API unificada para Ingestión, Búsqueda Semántica y Generación",
-    version="1.0.0",
-    docs_url=None  # <- Esto es clave
+    description="API-Adaptación Y Generación De Contenido",
+    version="1.0.0"
 )
 
-# ... (aquí van tus app.include_router(...) que ya tienes) ...
+# Configuración CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Permite que el frontend se conecte sin bloqueos
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# 2. Creas una ruta manual para inyectar el tema oscuro
-@app.get("/docs", include_in_schema=False)
-async def custom_swagger_ui_html():
-    return get_swagger_ui_html(
-        openapi_url=app.openapi_url,
-        title=app.title + " - Swagger UI",
-        oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
-        # Este CSS transforma todo el fondo y las tipografías a modo oscuro
-        swagger_css_url="https://cdn.jsdelivr.net/gh/Itz-fork/Fastapi-Swagger-UI-Dark/assets/swagger_ui_dark.min.css"
-    )
+# Inclusión de los enrutadores
+app.include_router(generar_contenido.router)
+app.include_router(rag_api.router)

@@ -3,22 +3,24 @@ from pathlib import Path
 
 import jsonschema
 
-from backend.src.ingestion import procesar_documento
-
+from backend.src.ingestion.main import procesar_documento
 
 def test_extraccion_documento():
+    # CORRECCIÓN DE RUTAS PARA LA NUEVA ARQUITECTURA
+    # __file__ está en backend/src/tests/
+    # .parent.parent.parent.parent
     pdf_bytes = (
-        Path(__file__).parent.parent
+        Path(__file__).parent.parent.parent.parent
         / "docs"
         / "test_pdf"
         / "Guia de Usuario - Oracle AI Success Navigator.pdf"
     ).read_bytes()  # bytes (archivo cargado en memoria)
 
     ruta_schema = (
-        Path(__file__).parent.parent / "contracts" / "clean_document.schema.json"
+        Path(__file__).parent.parent.parent.parent / "docs" / "contracts" / "clean_document.schema.json"
     )
 
-    # 1. Ejecutamos la función principal
+    # Ejecutamos la función principal
     json_resultado = procesar_documento(
         source=pdf_bytes,
         tenant_id="oracle_hackathon_test",
@@ -26,29 +28,29 @@ def test_extraccion_documento():
         nombre_archivo="Guia de Usuario - Oracle AI Success Navigator.pdf",
     )
 
-    # 2. Comprobamos que haya resultado
+    # Comprobamos que haya resultado
     assert json_resultado, "La función no devolvió ningún JSON"
 
-    # 3. Convertimos JSON string → dict
+    # Convertimos JSON string → dict
     resultado_dict = json.loads(json_resultado)
 
-    # 4. Validaciones básicas
+    # Validaciones básicas
     assert resultado_dict["tipo_origen"] == "pdf"
     assert "schema_version" in resultado_dict
     assert len(resultado_dict["contenido_estructurado"]) > 0
     assert resultado_dict["metadata_origen"]["total_paginas"] > 0
 
-    # 5. Cargamos el contrato
+    # Cargamos el contrato
     with open(ruta_schema, encoding="utf-8") as archivo:
         schema = json.load(archivo)
 
-    # 6. Validamos contra JSON Schema
+    # Validamos contra JSON Schema
     jsonschema.validate(
         instance=resultado_dict,
         schema=schema,
     )
 
-    # 7. Guardamos el resultado generado
+    # Guardamos el resultado generado
     ruta_salida = Path(__file__).parent / "resultado_test_ingestion.json"
 
     ruta_salida.write_text(
