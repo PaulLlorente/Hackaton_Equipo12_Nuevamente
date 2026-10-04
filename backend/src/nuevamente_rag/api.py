@@ -1,33 +1,18 @@
-import os
 from typing import Optional
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, Security, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from jose import JWTError, jwt
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException,Depends
 from pydantic import BaseModel
 
 from backend.src.ingestion.main import procesar_documento
 from backend.src.nuevamente_rag.pipeline import search_index, SentenceTransformerEmbedder
 from backend.src.nuevamente_rag.vector_store import MotorVectorialRAG
-
+from backend.src.administrar_usuarios.gestionar_usuario import obtener_usuario
 router = APIRouter(tags=["RAG Engine"])
 
-# --- Configuración de Seguridad JWT ---
-SUPABASE_JWT_SECRET: str = str(os.getenv("SUPABASE_JWT_SECRET", "super-secret-jwt-token-placeholder"))
-ALGORITHMS: list[str] = ["HS256"]
-security = HTTPBearer()
-
-def verificar_token(credentials: HTTPAuthorizationCredentials = Security(security)):
-    """Valida el token de Supabase en cada petición protegida."""
-    token = credentials.credentials
-    try:
-        payload = jwt.decode(token, SUPABASE_JWT_SECRET, algorithms=ALGORITHMS, options={"verify_aud": False})
-        return payload
-    except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token inválido, alterado o expirado",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+# ==============================================================================
+# SEGURIDAD JWT
+# ==============================================================================
+# RAG ENGINE (Preparado para el consumo y el LLM)
+# ==============================================================================
 
 # --- Inicialización de Modelos ---
 embedder = SentenceTransformerEmbedder()
@@ -47,11 +32,10 @@ async def ingest_document(
     file: UploadFile = File(...),
     tenant_id: str = Form(...),
     document_id: str = Form(...),
-    # Descomenta la siguiente línea cuando quieras activar la seguridad JWT para probar
-    # _usuario: dict = Depends(verificar_token)
+    usuario: dict = Depends(obtener_usuario)
 ):
     try:
-        #  LECTURA EN MEMORIA
+        # LECTURA EN MEMORIA
         contenido_bytes = await file.read()
 
         nombre_archivo_seguro: str = file.filename or "documento_desconocido.pdf"
@@ -64,7 +48,7 @@ async def ingest_document(
             document_id=document_id
         )
 
-        #  MOTOR VECTORIAL RAG
+        # MOTOR VECTORIAL RAG
         motor_rag = MotorVectorialRAG()
         motor_rag.ingestar_y_vectorizar_memoria(
             texto_crudo=texto_crudo,
@@ -85,8 +69,7 @@ async def ingest_document(
 @router.post("/api/search")
 def search(
     request: SearchRequest,
-    # Descomenta la siguiente línea cuando quieras activar la seguridad JWT
-    # _usuario: dict = Depends(verificar_token)
+    usuario: dict = Depends(obtener_usuario)
 ):
     try:
         results = search_index(
