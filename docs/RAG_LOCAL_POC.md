@@ -23,7 +23,7 @@ Responsabilidades:
 
 ## Contrato de entrada
 
-El contrato oficial está en `contracts/clean_document.schema.json`. El ejemplo mínimo reproducible está en `data/samples/clean_document.example.json`.
+El contrato oficial está en `contracts`. El ejemplo mínimo reproducible está en `../backend/data`.
 
 Campos utilizados por el chunker:
 
