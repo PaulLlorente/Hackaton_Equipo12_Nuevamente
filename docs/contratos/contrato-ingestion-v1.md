@@ -1,7 +1,7 @@
 # Decisiones del modulo de ingestion
 
 - **Contrato:** v1.0
-- **Ultima revision:** 2026-09-25
+- **Ultima revision:** 2026-10-05
 - **Responsable de mi modulo:** (Yo) Brayan Camilo Lopez (`Discord: @Brayan López`)
 - **Consumidores de mi salida:** AI Engineer, RAG Data/Vector Store y API Core
 - **Archivo actualizable:** uso este documento para registrar mis decisiones; no reemplaza el codigo.
@@ -26,40 +26,45 @@ consulta.
 
 | Area | Estado | Evidencia local | Proximo paso |
 | --- | --- | --- | --- |
-| Extraccion PDF | Implementada y validada | `src/ingestion/extractor.py` | Validar con mas PDFs tecnicos |
-| Entrada por bytes | Implementada (D-010) | `extractor.py`, `main.py` | Listo para integracion con FastAPI |
-| Parser PDF | PyMuPDF confirmado | `requirements.txt`, `schema.py` | Confirmar con PDFs escaneados |
+| Extraccion PDF | Implementada y validada | `src/ingestion/extractors/extractorPDF.py` | Validar con mas PDFs tecnicos |
+| Extraccion Markdown | Implementada y validada (D-013) | `src/ingestion/extractors/extractorMD.py` | Validar con documentos mixtos |
+| Arquitectura Multi-parser | Implementada con Factory (D-012) | `extractor.py`, `factory.py` | Listo para incorporar futuros formatos |
+| Entrada por bytes | Implementada (D-010) | `extractors/`, `main.py` | Listo para integracion con FastAPI |
+| Parser PDF | PyMuPDF confirmado | `requirements.txt`, `extractors/extractorPDF.py` | Confirmar con PDFs escaneados |
 | Hash del archivo | Refactorizado a bytes en memoria | `src/ingestion/hashing.py` | Funcional |
-| Modelo de salida | Definido con Pydantic | `src/ingestion/schema.py` | Funcional |
+| Modelo de salida | Definido con Pydantic (puro y desacoplado) | `src/ingestion/schema.py` | Funcional |
 | Advertencias | Implementadas | `extraction_warnings.py` detecta paginas sin texto | Agregar errores y casos OCR |
-| Estructuracion por encabezados | Implementada y refinada | `src/ingestion/structurer.py` | Funcional con extraccion por bloques |
+| Estructuracion por encabezados | Implementada y refinada | `src/ingestion/structurer.py` | Funcional con extraccion por bloques y Adapter MD |
 | Orquestacion del flujo | Implementada y funcional | `src/ingestion/main.py` | Recibe `source: bytes` y `nombre_archivo: str` |
-| Prueba automatica | Implementada con pytest y JSON Schema | `tests/test_ingestion.py` valida JSON, secciones, paginas y contrato | Ejecutada y verde |
+| Pruebas automaticas | Modularizadas por formato (D-014) | `tests/test_ingestion_PDF.py`, `tests/test_ingestion_MD.py` | Ejecutadas y 100% verdes contra JSON Schema |
 | Contrato JSON formal | Implementado | `contracts/clean_document.schema.json` | Compartido con Vanessa y Pereira |
 | Tipado moderno | Migrado a `list[]` nativo (D-011) | Todos los modulos | Funcional |
-| Multi-parser | Diseñado, no implementado | Contrato comun documentado | Terminar PDF primero |
 
 Este estado distingue entre el codigo que ya escribi y el comportamiento que ya
-comprobe. El flujo principal puede construir el JSON por secciones, la prueba
-comprueba el contrato completo y el schema JSON esta listo para que el consumidor
-de AI lo use como referencia.
+comprobe. El flujo principal puede construir el JSON por secciones, las pruebas
+comprueban el contrato completo tanto para PDF como para Markdown, y el schema JSON
+esta listo para que el consumidor de AI lo use como referencia.
 
 ## 3. Estructura actual del paquete
 
 | Archivo | Responsabilidad | Analogia |
 | --- | --- | --- |
-| `schema.py` | Define las estructuras de datos y el documento final | Los formularios oficiales que todos deben llenar |
-| `extractor.py` | Recibe el PDF en bytes y produce un fragmento por bloque con pagina, fuente y tamaño | El lector que recibe el libro en la mano y transcribe lo que encuentra |
+| `schema.py` | Define las estructuras de datos y el documento final desacoplado de librerias externas | Los formularios oficiales que todos deben llenar sin importar que lapiz se use |
+| `extractor.py` | Clase abstracta base (`DocumentExtractor`) que define el contrato comun | El molde estandar de enchufe al que cualquier aparato debe adaptarse |
+| `factory.py` | Fabrica que resuelve y entrega el extractor correcto segun la extension del archivo | La recepcionista que canaliza cada documento a la ventanilla correcta |
+| `extractors/extractorPDF.py` | Extrae contenido de PDFs por bloques fisicos usando PyMuPDF | El lector experto en libros impresos y diagramacion visual |
+| `extractors/extractorMD.py` | Extrae contenido de Markdown adaptando encabezados (`#`) a tamaños de fuente | El interprete que traduce un dialecto para que el sistema lo entienda sin cambiar sus reglas |
 | `hashing.py` | Calcula la huella SHA-256 directamente sobre los bytes en memoria | La huella digital del documento |
 | `extraction_warnings.py` | Detecta paginas que no produjeron texto | El tablero que enciende una alerta |
-| `structurer.py` | Agrupa fragmentos y estima niveles de encabezado | El archivista que separa el texto por temas |
-| `main.py` | Coordina el flujo y serializa el resultado | El coordinador que pasa el expediente por cada ventanilla |
+| `structurer.py` | Agrupa fragmentos y estima niveles de encabezado jerarquicos | El archivista que separa el texto por temas segun el tamaño |
+| `main.py` | Coordina el flujo global y serializa el resultado | El coordinador general que pasa el expediente por cada ventanilla |
 | `__init__.py` | Marca el directorio como paquete Python | La etiqueta que permite importar el paquete |
-| `tests/test_ingestion.py` | Ejecuta la prueba con pytest y valida el JSON contra el schema formal | El simulacro de entrega del expediente ante un auditor |
+| `tests/test_ingestion_PDF.py` | Prueba automatica para PDFs contra el JSON Schema | La auditoria formal de entrega para documentos PDF |
+| `tests/test_ingestion_MD.py` | Prueba automatica para Markdown contra el JSON Schema | La auditoria formal de entrega para documentos Markdown |
 | `contracts/clean_document.schema.json` | Contrato formal en JSON Schema que cualquier lenguaje puede validar | El reglamento publico escrito que todos los equipos pueden leer |
 
-La separacion es correcta para el MVP: cada pieza tiene una responsabilidad
-comprensible y `main.py` no contiene los detalles de lectura del PDF.
+La separacion es correcta y escalable: la orquestacion no conoce detalles de ningun
+formato y soportar un formato nuevo solo requiere crear un nuevo extractor en `extractors/`.
 
 ## 4. Contrato de salida acordado
 
@@ -330,32 +335,87 @@ elimino el import y se reemplazo `List[X]` por `list[X]`.
 que el navegador ahora ya hace de fabrica. La extension sigue funcionando, pero
 ya no tiene sentido cargarla.
 
+### D-012: abstraccion con Patron Factory y desacople del DTO
+
+**Decision:** crear la clase abstracta `DocumentExtractor(ABC)` y la fabrica
+`ExtractorFactory.get_extractor`. Desacoplar `schema.py` eliminando el import
+de `pymupdf` y los valores hardcodeados (`parser`, `version_parser`, `tipo_origen`).
+Cualquier formato no soportado lanza explicitamente `ValueError`.
+
+**Motivo:** el DTO no debe tener conocimiento de con que libreria se extrajeron
+los datos. Al encapsular la extraccion detras de una clase base comun, el
+orquestador (`main.py`) no conoce detalles del archivo y el sistema cumple el
+Principio de Abierto/Cerrado (OCP).
+
+**Analogia:** es como un centro comercial con una recepcion central. Si llegas con
+un paquete, la recepcionista (Factory) sabe exactamente a que oficina mandarlo segun
+la etiqueta (extension). Si traes un paquete que el centro comercial no procesa,
+te avisa inmediatamente en la entrada (ValueError) en vez de dejarte perderte adentro.
+
+**En NestJS:** equivale al Strategy Pattern combinado con Factory Providers
+(`useFactory`) e inyeccion de dependencias por interfaz.
+
+### D-013: extractor de Markdown con Patron Adapter nativo
+
+**Decision:** implementar `ExtractorMarkdown` sin dependencias externas pesadas,
+decodificando bytes a UTF-8 y recorriendo el texto linea por linea. Adaptar los
+simbolos `#`, `##` y `###` asignando tamaños de fuente virtuales (`24.0`, `20.0`,
+`16.0`) y texto normal (`12.0`).
+
+**Motivo:** `structurer.py` ya sabe inferir jerarquias H1/H2 usando relaciones de
+tamaño de fuente. Al adaptar Markdown a esa misma escala virtual, reutilizamos el
+100% de la logica de estructuracion existente sin duplicar codigo ni alterar el
+contrato JSON v1.0.
+
+**Analogia:** es como un adaptador de viaje para enchufes internacionales. El
+televisor (estructurador) sigue esperando una clavija redonda (tamaños de fuente).
+En lugar de desarmar el televisor para que acepte clavijas planas (Markdown), le
+conectamos un adaptador liviano en la punta que traduce la conexion de inmediato.
+
+**En NestJS:** Patrón Adapter clasico (GoF), util para normalizar fuentes heterogeneas
+hacia un formato de dominio unico.
+
+### D-014: separacion de suites de prueba y fixtures
+
+**Decision:** dividir la suite de pruebas en `test_ingestion_PDF.py` y
+`test_ingestion_MD.py`, y unificar los archivos de prueba en la carpeta
+`docs/test_ingestion_formats/`.
+
+**Motivo:** aislar el diagnostico por formato. Si falla la decodificacion de
+Markdown, no bloquea la verificacion del motor de PDF. Ambos tests validan
+su salida de forma independiente contra el contrato estricto de `clean_document.schema.json`.
+
+**Analogia:** tener dos inspectores de aduana especializados: uno audita libros
+impresos (PDF) y el otro audita documentos digitales (MD). Ambos usan el mismo
+reglamento (JSON Schema), pero si un inspector detecta un detalle en un libro, el
+otro puede seguir revisando el resto de cargas sin detenerse.
+
 ## 6. Flujo implementado y frontera con el equipo
 
 1. `procesar_documento` recibe `source: bytes` y `nombre_archivo: str`.
-2. `DocumentExtractor` abre el PDF desde los bytes en memoria con PyMuPDF.
-3. Recorro paginas, bloques y spans; por cada bloque de texto genero un
-   `FragmentoTexto` con el texto completo, el tamaño de fuente del primer span,
-   la bandera de negrita, la fuente y el `bbox` del bloque.
-4. `calcular_sha256` calcula la huella directamente sobre los bytes en memoria.
-5. `detectar_advertencias` detecta paginas que no produjeron ningun fragmento.
-6. `estructurar_documento` clasifica cada fragmento como H1, H2 o parrafo usando
-   ratios respecto al tamaño de fuente mas frecuente del documento.
-7. `DocumentoIngestado` reune metadatos, advertencias y secciones.
-8. `model_dump_json` serializa el documento para el consumidor de AI.
-9. `tests/test_ingestion.py` valida el JSON generado contra el schema formal.
-
-El PR #8 actualmente describe una entrada por paginas (`page_number`, `text`).
-Al integrarlo, debo conservar `tenant_id`, `document_id`, seccion,
-encabezado, paginas, idioma, hash, parser y advertencias. El chunker puede
-dividir el texto, pero no debe borrar la trazabilidad de origen.
+2. `ExtractorFactory.get_extractor` inspecciona la extension (`.pdf`, `.md`) y
+   devuelve la instancia correspondiente que implementa `DocumentExtractor`.
+   Si la extension es desconocida, lanza `ValueError`.
+3. El extractor ejecuta `.parse()` en memoria:
+   - En PDF: recorre bloques y spans de PyMuPDF.
+   - En Markdown: recorre lineas y adapta los `#` a tamaños de fuente virtuales.
+4. Se devuelve `ResultadoExtraccion` con fragmentos y metadatos basicos.
+5. `calcular_sha256` calcula la huella SHA-256 sobre los bytes en memoria.
+6. `detectar_advertencias` evalua la calidad de la extraccion.
+7. `estructurar_documento` clasifica y agrupa los fragmentos en secciones jerarquicas.
+8. `DocumentoIngestado` reune metadata, info de extraccion (parser, version,
+   advertencias) y contenido estructurado.
+9. `model_dump_json` serializa el resultado validado para el modulo RAG.
+10. `test_ingestion_PDF.py` y `test_ingestion_MD.py` aseguran que ambos formatos
+    cumplan al 100% el JSON Schema formal acordado con Vanessa y Pereira.
 
 ## 7. Decisiones pendientes
 
-- Validar el flujo con PDFs tecnicos de otros formatos (tablas, columnas, imagenes).
-- Completar advertencias para OCR y errores de extraccion.
-- Comparar PyMuPDF con otra alternativa solo si un PDF de prueba revela una limitacion relevante.
-- Agregar soporte para Markdown como segundo formato de entrada.
+- Spike de Docling: evaluado en branch experimental. Descartado para el MVP de
+  PDFs por latencia y consumo de recursos en OCI Always Free (7-33s vs 0.4s de PyMuPDF).
+  Queda reservado como candidato para archivos ofimaticos (DOCX/PPTX) en sprints posteriores.
+- Conectar con el endpoint de FastAPI de Erick en Semana 2.
+- Validar comportamiento ante archivos corruptos o vacios a nivel de API.
 
 ## 8. Registro actualizable de avances
 
@@ -376,6 +436,10 @@ porque existe una clase: necesito una prueba o un ejemplo que demuestre el flujo
 | 2026-09-25 | Refactor: entrada por bytes | `extractor.py`, `hashing.py`, `main.py`, `test_ingestion.py` | El modulo recibe bytes en memoria en vez de ruta de disco; elimina I/O innecesario para integracion con FastAPI | Implementado (D-010) |
 | 2026-09-25 | Migracion a `list[]` nativo | Todos los modulos | Se elimino `from typing import List` y se uso `list[]` nativo de Python 3.9+ | Implementado (D-011) |
 | 2026-09-25 | Hash desde bytes en memoria | `hashing.py` | `calcular_sha256` recibe `bytes` directamente; ya no abre archivos ni lee en bloques | Implementado (actualiza D-005) |
+| 2026-10-04 | Patron Factory y desacople del DTO | `extractor.py`, `factory.py`, `schema.py` | Se creo `DocumentExtractor(ABC)` y `ExtractorFactory`. Se elimino acoplamiento de PyMuPDF en DTOs | Implementado (D-012) |
+| 2026-10-05 | Extractor Markdown con Adapter nativo | `extractors/extractorMD.py` | Se mapeo la semantica de `#` a tamaños de fuente virtuales sin dependencias pesadas | Implementado (D-013) |
+| 2026-10-05 | Modularizacion de tests por formato | `tests/test_ingestion_PDF.py`, `tests/test_ingestion_MD.py` | Tests independientes para PDF y MD ejecutados y 100% verdes contra el JSON Schema | Implementado (D-014) |
+| 2026-10-05 | Spike de Docling evaluado | `scripts/spike_docling.py` (desechable) | Se midio y descarto para PDF por costo computacional (33s vs 0.4s); se reserva para DOCX/PPTX | Evaluado y documentado |
 
 ## 9. Como actualizo esta documentacion
 

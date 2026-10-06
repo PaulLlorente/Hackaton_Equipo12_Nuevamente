@@ -60,13 +60,13 @@ class FragmentoTexto(BaseModel):
         None  # Posición del fragmento dentro de la página: (x0, y0, x1, y1)
     )
 
-# 5. Resultado de la extracción (fragmentos y metadatos)
+# 6. Resultado de la extracción (fragmentos y metadatos)
 class ResultadoExtraccion(BaseModel):
     fragmentos: list[FragmentoTexto]
     metadata: MetadataOrigen
 
 
-# 6. El DTO principal (El JSON completo que le entregarre a mi compañera Vanessa)
+# 7. El DTO principal (El JSON completo que le entregarre a mi compañera Vanessa)
 class DocumentoIngestado(BaseModel):
     schema_version: str = "1.0"  # Versión del esquema
     tenant_id: str

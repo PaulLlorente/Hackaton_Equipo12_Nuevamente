@@ -4,7 +4,7 @@ from pathlib import Path
 from ..schema import FragmentoTexto, MetadataOrigen, ResultadoExtraccion
 from ..extractor import DocumentExtractor
 
-
+# clase que hereda de DocumentExtractor y se encarga de extraer datos de archivos PDF
 class ExtractorPDF(DocumentExtractor):
 
     @property
@@ -19,9 +19,11 @@ class ExtractorPDF(DocumentExtractor):
     def parser_version(self) -> str:
         return pymupdf.__version__
 
+    # metodo que extrae los fragmentos de texto del archivo PDF
     def parse(self) -> ResultadoExtraccion:
         fragmentos = []
 
+        # abre el archivo PDF usando PyMuPDF y recorre cada página del documento
         try:
             with pymupdf.open(stream=self.source, filetype="pdf") as documento:
 
