@@ -1,0 +1,14 @@
+{
+  "version_prompt": "1.0",
+  "perfil": "principiante",
+  "estado": "ok",
+  "fuentes_usadas": ["F1"],
+  "advertencias": ["Ejemplo sintético escrito a mano; tiempo de estudio estimado."],
+  "contenido": {
+    "formato": "resumen",
+    "conceptos_clave": "429, Retry-After, espera exponencial y reintentos",
+    "tiempo_estudio": 2,
+    "evaluacion_calidad": "Cubre la política del fragmento; no describe otros estados.",
+    "contenido_adaptado": "La API admite cien solicitudes por minuto por cliente. Si devuelve 429, espera el tiempo indicado por Retry-After antes de reintentar. Usa espera exponencial y un máximo de tres reintentos [F1]."
+  }
+}

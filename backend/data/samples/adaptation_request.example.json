@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "tenant_id": "equipo-12-demo",
+  "document_id": "manual-demo",
+  "documento_titulo": "Manual técnico sintético de prueba",
+  "perfil_destinatario": "principiante",
+  "formato_salida": "resumen",
+  "nicho_sector": "tecnologia",
+  "nivel_detalle": "breve",
+  "objetivo": "Explicar qué hacer ante un estado 429",
+  "evidencia": [
+    {
+      "chunk_id": "manual-demo:00001:429",
+      "tenant_id": "equipo-12-demo",
+      "document_id": "manual-demo",
+      "section_title": "Límites y reintentos",
+      "page_start": 2,
+      "page_end": 2,
+      "text": "La API admite cien solicitudes por minuto por cliente. Si el servicio responde con estado 429, espere el tiempo indicado por Retry-After antes de reintentar. Use espera exponencial y un máximo de tres reintentos."
+    }
+  ]
+}

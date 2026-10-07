@@ -1,0 +1,5 @@
+# Preparación de prompts y pruebas offline del Issue #15; sin SDK ni API keys.
+# Los rangos coinciden con las dependencias compartidas de requirements.txt.
+pydantic>=2.10,<3
+pytest>=8.3,<10
+jsonschema>=4.23,<5
