@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 # Importación de los routers
 from backend.src.api.routers import generar_contenido
 from backend.src.nuevamente_rag import api as rag_api
+from backend.src.api.routers import usuarios
 
 app = FastAPI(
     title="NUEVAMENTE EQUIPO 12",
@@ -23,3 +24,4 @@ app.add_middleware(
 # Inclusión de los enrutadores
 app.include_router(generar_contenido.router)
 app.include_router(rag_api.router)
+app.include_router(usuarios.router)

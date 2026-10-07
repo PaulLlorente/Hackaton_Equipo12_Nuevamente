@@ -1,10 +1,12 @@
 from typing import Optional
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException,Depends
 from pydantic import BaseModel
 
 from backend.src.ingestion.main import procesar_documento
+from backend.database.schema_db import Users
 from backend.src.nuevamente_rag.pipeline import search_index, SentenceTransformerEmbedder
 from backend.src.nuevamente_rag.vector_store import MotorVectorialRAG
+from backend.src.administrar_usuarios.gestionar_usuario import obtener_usuario
 router = APIRouter(tags=["RAG Engine"])
 
 # ==============================================================================
@@ -31,8 +33,7 @@ async def ingest_document(
     file: UploadFile = File(...),
     tenant_id: str = Form(...),
     document_id: str = Form(...),
-    # TODO: Descomentar para proteger la ruta
-    # _usuario: dict = Depends(obtener_usuario)
+    usuario: Users = Depends(obtener_usuario)
 ):
     try:
         # LECTURA EN MEMORIA
@@ -69,8 +70,7 @@ async def ingest_document(
 @router.post("/api/search")
 def search(
     request: SearchRequest,
-    # TODO ERICK: Descomentar para proteger la ruta
-    # _usuario: dict = Depends(obtener_usuario)
+    usuario: Users = Depends(obtener_usuario)
 ):
     try:
         results = search_index(
