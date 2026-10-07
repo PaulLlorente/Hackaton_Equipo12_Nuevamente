@@ -3,6 +3,7 @@ from fastapi import APIRouter, UploadFile, File, Form, HTTPException,Depends
 from pydantic import BaseModel
 
 from backend.src.ingestion.main import procesar_documento
+from backend.database.schema_db import Users
 from backend.src.nuevamente_rag.pipeline import search_index, SentenceTransformerEmbedder
 from backend.src.nuevamente_rag.vector_store import MotorVectorialRAG
 from backend.src.administrar_usuarios.gestionar_usuario import obtener_usuario
@@ -32,7 +33,7 @@ async def ingest_document(
     file: UploadFile = File(...),
     tenant_id: str = Form(...),
     document_id: str = Form(...),
-    usuario: dict = Depends(obtener_usuario)
+    usuario: Users = Depends(obtener_usuario)
 ):
     try:
         # LECTURA EN MEMORIA
@@ -69,7 +70,7 @@ async def ingest_document(
 @router.post("/api/search")
 def search(
     request: SearchRequest,
-    usuario: dict = Depends(obtener_usuario)
+    usuario: Users = Depends(obtener_usuario)
 ):
     try:
         results = search_index(
