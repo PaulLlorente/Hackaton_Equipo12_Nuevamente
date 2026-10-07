@@ -5,25 +5,29 @@ import jsonschema
 
 from backend.src.ingestion.main import procesar_documento
 
+
 def test_extraccion_documento():
     # CORRECCIÓN DE RUTAS PARA LA NUEVA ARQUITECTURA
     # __file__ está en backend/src/tests/
     # .parent.parent.parent.parent
     pdf_bytes = (
-        Path(__file__).parent.parent.parent.parent
+        Path(__file__).parent.parent.parent
         / "docs"
-        / "test_pdf"
+        / "test_ingestion_formats"
         / "Guia de Usuario - Oracle AI Success Navigator.pdf"
     ).read_bytes()  # bytes (archivo cargado en memoria)
 
     ruta_schema = (
-        Path(__file__).parent.parent.parent.parent / "docs" / "contracts" / "clean_document.schema.json"
+        Path(__file__).parent.parent.parent
+        / "docs"
+        / "contracts"
+        / "clean_document.schema.json"
     )
 
     # Ejecutamos la función principal
     json_resultado = procesar_documento(
         source=pdf_bytes,
-        tenant_id="oracle_hackathon_test",
+        tenant_id="oracle_hackathon_test_pdf",
         document_id="doc_test_001",
         nombre_archivo="Guia de Usuario - Oracle AI Success Navigator.pdf",
     )
@@ -51,7 +55,7 @@ def test_extraccion_documento():
     )
 
     # Guardamos el resultado generado
-    ruta_salida = Path(__file__).parent / "resultado_test_ingestion.json"
+    ruta_salida = Path(__file__).parent / "resultado_test_ingestion_pdf.json"
 
     ruta_salida.write_text(
         json_resultado,
