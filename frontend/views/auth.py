@@ -1,3 +1,4 @@
+
 import streamlit as st
 
 from services.api import iniciar_sesion, registrar_usuario
@@ -7,7 +8,7 @@ def mostrar_login():
     st.markdown(
         """
         <div class="hero">
-            <h1>🧠 NuevaMente</h1>
+            <h1>NuevaMente</h1>
             <p>
                 Convierte documentación técnica en contenido claro,
                 útil y adaptado a diferentes formas de aprendizaje.
@@ -44,16 +45,27 @@ def mostrar_login():
                 st.warning("Ingresa tu correo y contraseña.")
             else:
                 with st.spinner("Iniciando sesión..."):
-                    correcto, mensaje = iniciar_sesion(
+                    correcto, resultado = iniciar_sesion(
                         email.strip(),
                         password
                     )
 
                 if correcto:
-                    st.success(mensaje)
-                    st.rerun()
+                    if isinstance(resultado, dict) and resultado.get("access_token"):
+                        st.session_state.token = resultado["access_token"]
+                        st.session_state.email = email.strip()
+                        st.session_state.rol = resultado.get(
+                            "rol",
+                            resultado.get("role", "usuario")
+                        )
+                        st.session_state.pagina = "Dashboard"
+                        st.rerun()
+                    else:
+                        st.error(
+                            "El servidor no devolvió un token de acceso válido."
+                        )
                 else:
-                    st.error(mensaje)
+                    st.error(str(resultado))
 
         st.write("¿Aún no tienes una cuenta?")
 
@@ -70,7 +82,7 @@ def mostrar_registro():
     st.markdown(
         """
         <div class="hero">
-            <h1>🧠 NuevaMente</h1>
+            <h1>NuevaMente</h1>
             <p>
                 Crea tu cuenta para comenzar a trabajar
                 con documentación técnica.
@@ -109,7 +121,7 @@ def mostrar_registro():
             )
 
         if enviar:
-            if not email.strip() or not password:
+            if not email.strip() or not password or not confirmar:
                 st.warning("Completa todos los campos.")
 
             elif password != confirmar:
@@ -117,18 +129,17 @@ def mostrar_registro():
 
             else:
                 with st.spinner("Creando cuenta..."):
-                    correcto, mensaje = registrar_usuario(
+                    correcto, resultado = registrar_usuario(
                         email.strip(),
                         password
                     )
 
                 if correcto:
-                    st.success(mensaje)
-                    st.info(
-                        "Tu cuenta fue creada. Ahora puedes iniciar sesión."
-                    )
+                    st.success("Tu cuenta fue creada correctamente.")
+                    st.session_state.pantalla_auth = "login"
+                    st.info("Ahora puedes iniciar sesión.")
                 else:
-                    st.error(mensaje)
+                    st.error(str(resultado))
 
         if st.button(
             "Volver a iniciar sesión",
