@@ -42,3 +42,22 @@ class Guion(BaseModel):
     titulo: str  
     tiempo_estimado: str  
     escenas: List[Escena]  
+from typing import Union
+from pydantic import Field
+
+# Contrato de entrada para el endpoint /adaptar
+class AdaptarRequest(BaseModel):
+    query: str = Field(..., description="Pregunta, tema o concepto a consultar")
+    tenant_id: str = Field(default="default", description="Identificador del tenant o usuario")
+    perfil: Literal["principiante", "intermedio", "avanzado"] = Field(
+        default="intermedio", 
+        description="Perfil pedagógico de la audiencia"
+    )
+    formato: Literal["resumen", "flashcard", "quiz", "guion"] = Field(
+        default="resumen", 
+        description="Formato educativo deseado"
+    )
+    top_k: int = Field(default=3, ge=1, le=10, description="Cantidad de fragmentos a recuperar del RAG")
+
+# Unión tipada para respuesta según el formato seleccionado
+AdaptarResponse = Union[Resumen, Flashcards, Quiz, Guion]
