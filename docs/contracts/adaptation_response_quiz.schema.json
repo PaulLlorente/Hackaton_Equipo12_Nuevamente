@@ -1,0 +1,122 @@
+{
+  "$defs": {
+    "PreguntasQuiz": {
+      "properties": {
+        "pregunta": {
+          "title": "Pregunta",
+          "type": "string"
+        },
+        "opciones": {
+          "title": "Opciones",
+          "type": "string"
+        },
+        "respuesta_correcta": {
+          "title": "Respuesta Correcta",
+          "type": "string"
+        }
+      },
+      "required": [
+        "pregunta",
+        "opciones",
+        "respuesta_correcta"
+      ],
+      "title": "PreguntasQuiz",
+      "type": "object"
+    },
+    "Quiz": {
+      "properties": {
+        "formato": {
+          "const": "quiz",
+          "title": "Formato",
+          "type": "string"
+        },
+        "conceptos_clave": {
+          "title": "Conceptos Clave",
+          "type": "string"
+        },
+        "tiempo_estudio": {
+          "title": "Tiempo Estudio",
+          "type": "integer"
+        },
+        "evaluacion_calidad": {
+          "title": "Evaluacion Calidad",
+          "type": "string"
+        },
+        "contenido_adaptado": {
+          "items": {
+            "$ref": "#/$defs/PreguntasQuiz"
+          },
+          "title": "Contenido Adaptado",
+          "type": "array"
+        }
+      },
+      "required": [
+        "formato",
+        "conceptos_clave",
+        "tiempo_estudio",
+        "evaluacion_calidad",
+        "contenido_adaptado"
+      ],
+      "title": "Quiz",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "version_prompt": {
+      "const": "1.0",
+      "title": "Version Prompt",
+      "type": "string"
+    },
+    "perfil": {
+      "enum": [
+        "principiante",
+        "avanzado"
+      ],
+      "title": "Perfil",
+      "type": "string"
+    },
+    "estado": {
+      "enum": [
+        "ok",
+        "evidencia_insuficiente"
+      ],
+      "title": "Estado",
+      "type": "string"
+    },
+    "fuentes_usadas": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Fuentes Usadas",
+      "type": "array"
+    },
+    "advertencias": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Advertencias",
+      "type": "array"
+    },
+    "contenido": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Quiz"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "version_prompt",
+    "perfil",
+    "estado",
+    "fuentes_usadas",
+    "advertencias",
+    "contenido"
+  ],
+  "title": "Respuesta_quiz_v1",
+  "type": "object"
+}

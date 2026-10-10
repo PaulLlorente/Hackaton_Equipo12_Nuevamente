@@ -1,0 +1,171 @@
+{
+  "$defs": {
+    "EvidenceChunk": {
+      "additionalProperties": false,
+      "properties": {
+        "chunk_id": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Chunk Id",
+          "type": "string"
+        },
+        "tenant_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Tenant Id",
+          "type": "string"
+        },
+        "document_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Document Id",
+          "type": "string"
+        },
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "section_title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Section Title"
+        },
+        "page_start": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page Start"
+        },
+        "page_end": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page End"
+        }
+      },
+      "required": [
+        "chunk_id",
+        "tenant_id",
+        "document_id",
+        "text"
+      ],
+      "title": "EvidenceChunk",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Contrato INTERNO backend → prompts; los IDs ya deben estar autorizados.",
+  "properties": {
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "documento_titulo": {
+      "maxLength": 500,
+      "minLength": 1,
+      "title": "Documento Titulo",
+      "type": "string"
+    },
+    "perfil_destinatario": {
+      "enum": [
+        "principiante",
+        "avanzado"
+      ],
+      "title": "Perfil Destinatario",
+      "type": "string"
+    },
+    "formato_salida": {
+      "enum": [
+        "resumen",
+        "flashcard",
+        "quiz",
+        "guion"
+      ],
+      "title": "Formato Salida",
+      "type": "string"
+    },
+    "nicho_sector": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Nicho Sector"
+    },
+    "nivel_detalle": {
+      "default": "breve",
+      "enum": [
+        "breve",
+        "detallado"
+      ],
+      "title": "Nivel Detalle",
+      "type": "string"
+    },
+    "objetivo": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Objetivo",
+      "type": "string"
+    },
+    "tenant_id": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "document_id": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Document Id",
+      "type": "string"
+    },
+    "evidencia": {
+      "items": {
+        "$ref": "#/$defs/EvidenceChunk"
+      },
+      "title": "Evidencia",
+      "type": "array"
+    }
+  },
+  "required": [
+    "documento_titulo",
+    "perfil_destinatario",
+    "formato_salida",
+    "objetivo",
+    "tenant_id",
+    "document_id",
+    "evidencia"
+  ],
+  "title": "AdaptationRequest",
+  "type": "object"
+}
