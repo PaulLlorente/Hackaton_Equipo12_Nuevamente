@@ -44,7 +44,7 @@ def cerrar_sesion():
     st.session_state.documentos = []
     st.session_state.material_history = []
     st.session_state.pantalla_auth = "login"
-    st.session_state.pagina = "Dashboard"
+    st.session_state.ir_a = "Dashboard"
 
     st.rerun()
 
@@ -108,6 +108,8 @@ def mostrar_aplicacion():
         st.write(st.session_state.email or "Sin sesión")
 
         st.caption(f"Rol: {st.session_state.rol or 'Sin asignar'}")
+
+        st.button("Cerrar sesión", on_click=cerrar_sesion, use_container_width=True)
 
     if opcion == "Dashboard":
         mostrar_inicio()
