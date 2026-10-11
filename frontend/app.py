@@ -1,4 +1,3 @@
-
 import streamlit as st
 
 from styles.estilos import cargar_estilos
@@ -6,20 +5,17 @@ from views.auth import mostrar_login, mostrar_registro
 from views.inicio import mostrar_inicio
 from views.carga import mostrar_carga
 from views.consulta import mostrar_consulta
-from views.adaptacion import mostrar_adaptacion
+from views.adaptacion import aplicar_estilos, mostrar_adaptacion
 from views.cuenta import mostrar_cuenta
-
-
-MODO_DEMO = False
-
 
 st.set_page_config(
     page_title="NuevaMente | Panel Administrativo",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
 cargar_estilos()
+aplicar_estilos()
 
 
 def inicializar_sesion():
@@ -32,7 +28,7 @@ def inicializar_sesion():
         "document_id": None,
         "documentos": [],
         "material_history": [],
-        "pagina": "Dashboard"
+        "pagina": "Dashboard",
     }
 
     for clave, valor in valores_iniciales.items():
@@ -54,6 +50,10 @@ def cerrar_sesion():
 
 
 def mostrar_aplicacion():
+    if st.session_state.get("ir_a"):
+        st.session_state.pagina = st.session_state.ir_a
+        st.session_state.ir_a = None
+
     with st.sidebar:
         st.markdown(
             """
@@ -67,69 +67,47 @@ def mostrar_aplicacion():
                 </div>
             </div>
             """,
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
 
         st.divider()
 
         st.markdown(
-            '<div class="sidebar-label">NAVEGACIÓN</div>',
-            unsafe_allow_html=True
+            '<div class="sidebar-label">NAVEGACIÓN</div>', unsafe_allow_html=True
         )
 
         opciones = [
             "Dashboard",
             "Cargar documento",
-            "Consultar documento",
             "Adaptar contenido",
             "Librería",
-            "Mi cuenta"
+            "Consultar documento",
+            "Mi cuenta",
         ]
 
         if st.session_state.pagina not in opciones:
             st.session_state.pagina = "Dashboard"
 
         opcion = st.radio(
-            "Navegación",
-            opciones,
-            key="pagina",
-            label_visibility="collapsed"
+            "Navegación", opciones, key="pagina", label_visibility="collapsed"
         )
 
         st.divider()
 
         st.markdown(
             '<div class="sidebar-label">ESPACIO DE TRABAJO</div>',
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
 
-        st.caption(
-            f"Tenant: {st.session_state.tenant_id}"
-        )
+        st.caption(f"Tenant: {st.session_state.tenant_id}")
 
         st.divider()
 
-        st.markdown(
-            '<div class="sidebar-label">CUENTA</div>',
-            unsafe_allow_html=True
-        )
+        st.markdown('<div class="sidebar-label">CUENTA</div>', unsafe_allow_html=True)
 
-        st.write(
-            st.session_state.email or "Sin sesión"
-        )
+        st.write(st.session_state.email or "Sin sesión")
 
-        st.caption(
-            f"Rol: {st.session_state.rol or 'Sin asignar'}"
-        )
-
-        if MODO_DEMO:
-            st.caption("Modo demostración")
-        else:
-            if st.button(
-                "Cerrar sesión",
-                use_container_width=True
-            ):
-                cerrar_sesion()
+        st.caption(f"Rol: {st.session_state.rol or 'Sin asignar'}")
 
     if opcion == "Dashboard":
         mostrar_inicio()
@@ -153,46 +131,25 @@ def mostrar_aplicacion():
 def mostrar_libreria():
     st.title("Librería de contenidos")
 
-    st.write(
-        "Consulta los materiales educativos generados "
-        "durante esta sesión."
-    )
+    st.write("Consulta los materiales educativos generados " "durante esta sesión.")
 
     historial = st.session_state.material_history
 
     if not historial:
-        st.info(
-            "Todavía no hay materiales generados "
-            "en esta sesión."
-        )
+        st.info("Todavía no hay materiales generados " "en esta sesión.")
         return
 
     for indice, material in enumerate(historial):
-        titulo = material.get(
-            "archivo",
-            f"Material {indice + 1}"
-        )
+        titulo = material.get("archivo", f"Material {indice + 1}")
 
-        formato = material.get(
-            "formato",
-            "Sin formato"
-        )
+        formato = material.get("formato", "Sin formato")
 
-        fecha = material.get(
-            "fecha",
-            "Sin fecha"
-        )
+        fecha = material.get("fecha", "Sin fecha")
 
-        with st.expander(
-            f"{titulo} - {formato} ({fecha})"
-        ):
-            st.write(
-                f"**Perfil:** {material.get('perfil', 'No especificado')}"
-            )
+        with st.expander(f"{titulo} - {formato} ({fecha})"):
+            st.write(f"**Perfil:** {material.get('perfil', 'No especificado')}")
 
-            st.write(
-                f"**Formato:** {formato}"
-            )
+            st.write(f"**Formato:** {formato}")
 
             resultado = material.get("resultado")
 
@@ -203,20 +160,13 @@ def mostrar_libreria():
 
                 st.download_button(
                     "Descargar JSON",
-                    data=json.dumps(
-                        resultado,
-                        ensure_ascii=False,
-                        indent=2
-                    ),
+                    data=json.dumps(resultado, ensure_ascii=False, indent=2),
                     file_name=f"material_{indice + 1}.json",
                     mime="application/json",
-                    key=f"descargar_material_{indice}"
+                    key=f"descargar_material_{indice}",
                 )
             else:
-                st.caption(
-                    "Este registro no contiene "
-                    "un resultado descargable."
-                )
+                st.caption("Este registro no contiene " "un resultado descargable.")
 
 
 def main():
