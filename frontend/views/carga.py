@@ -21,7 +21,8 @@ def mostrar_carga():
 
     archivo = st.file_uploader(
         "Selecciona un documento",
-        type=["pdf", "md"]
+        type=["pdf", "md"], 
+        max_upload_size = 10 
     )
 
     if archivo is not None:
@@ -39,7 +40,8 @@ def mostrar_carga():
     if st.button(
         "Procesar documento",
         type="primary",
-        use_container_width=True
+        use_container_width=True,
+        key="procesar_doc"
     ):
         tenant_id = tenant_id.strip()
 

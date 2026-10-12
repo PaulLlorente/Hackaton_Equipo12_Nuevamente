@@ -1,5 +1,4 @@
-﻿
-import streamlit as st
+﻿import streamlit as st
 
 
 def mostrar_inicio():
@@ -14,13 +13,11 @@ def mostrar_inicio():
             </p>
         </div>
         """,
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
 
     st.subheader("Panel de control")
-    st.caption(
-        "Resumen de la actividad y herramientas disponibles."
-    )
+    st.caption("Resumen de la actividad y herramientas disponibles.")
 
     documentos = st.session_state.get("documentos", [])
     materiales = st.session_state.get("material_history", [])
@@ -28,22 +25,13 @@ def mostrar_inicio():
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        st.metric(
-            label="Documentos de la sesión",
-            value=len(documentos)
-        )
+        st.metric(label="Documentos de la sesión", value=len(documentos))
 
     with col2:
-        st.metric(
-            label="Materiales generados",
-            value=len(materiales)
-        )
+        st.metric(label="Materiales generados", value=len(materiales))
 
     with col3:
-        st.metric(
-            label="Formatos disponibles",
-            value=4
-        )
+        st.metric(label="Formatos disponibles", value=4)
 
     st.divider()
 
@@ -62,40 +50,14 @@ def mostrar_inicio():
                 </p>
             </div>
             """,
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
 
-        if st.button(
-            "Cargar documento",
-            key="inicio_cargar",
-            use_container_width=True
-        ):
-            st.session_state.pagina = "Cargar documento"
+        if st.button("Cargar documento", key="inicio_cargar", use_container_width=True):
+            st.session_state.ir_a = "Cargar documento"
             st.rerun()
 
     with col2:
-        st.markdown(
-            """
-            <div class="card">
-                <h3>Consulta inteligente</h3>
-                <p>
-                    Realiza preguntas sobre los documentos procesados
-                    mediante el sistema RAG.
-                </p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-        if st.button(
-            "Consultar documento",
-            key="inicio_consultar",
-            use_container_width=True
-        ):
-            st.session_state.pagina = "Consultar documento"
-            st.rerun()
-
-    with col3:
         st.markdown(
             """
             <div class="card">
@@ -106,15 +68,32 @@ def mostrar_inicio():
                 </p>
             </div>
             """,
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
 
         if st.button(
-            "Adaptar contenido",
-            key="inicio_adaptar",
-            use_container_width=True
+            "Adaptar contenido", key="inicio_adaptar", use_container_width=True
         ):
-            st.session_state.pagina = "Adaptar contenido"
+            st.session_state.ir_a = "Adaptar contenido"
+            st.rerun()
+    with col3:
+        st.markdown(
+            """
+            <div class="card">
+                <h3>Consulta inteligente</h3>
+                <p>
+                    Realiza preguntas sobre los documentos procesados
+                    mediante el sistema RAG.
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        if st.button(
+            "Consultar documento", key="inicio_consultar", use_container_width=True
+        ):
+            st.session_state.ir_a = "Consultar documento"
             st.rerun()
 
     st.divider()
@@ -127,19 +106,14 @@ def mostrar_inicio():
         if materiales:
             for indice, material in enumerate(materiales[:5]):
                 with st.container(border=True):
-                    st.write(
-                        f"**{material.get('archivo', 'Material educativo')}**"
-                    )
+                    st.write(f"**{material.get('archivo', 'Material educativo')}**")
 
                     st.caption(
                         f"{material.get('formato', 'Sin formato')} | "
                         f"{material.get('fecha', 'Sin fecha')}"
                     )
 
-                    if st.button(
-                        "Ver en Librería",
-                        key=f"ver_material_{indice}"
-                    ):
+                    if st.button("Ver en Librería", key=f"ver_material_{indice}"):
                         st.session_state.pagina = "Librería"
                         st.rerun()
 
@@ -149,10 +123,7 @@ def mostrar_inicio():
                     if isinstance(documento, dict):
                         nombre = documento.get(
                             "nombre",
-                            documento.get(
-                                "nombre_archivo",
-                                f"Documento {indice + 1}"
-                            )
+                            documento.get("nombre_archivo", f"Documento {indice + 1}"),
                         )
                     else:
                         nombre = str(documento)
@@ -161,19 +132,14 @@ def mostrar_inicio():
                     st.caption("Documento registrado en la sesión")
 
         else:
-            st.info(
-                "Todavía no hay actividad registrada en esta sesión."
-            )
+            st.info("Todavía no hay actividad registrada en esta sesión.")
 
     with col_espacio:
         st.subheader("Espacio de trabajo")
 
         with st.container(border=True):
             st.write("**Tenant actual**")
-            st.code(
-                st.session_state.get("tenant_id", "equipo12"),
-                language=None
-            )
+            st.code(st.session_state.get("tenant_id", "equipo12"), language=None)
 
             st.write("**Último documento**")
 
@@ -182,9 +148,7 @@ def mostrar_inicio():
             if document_id:
                 st.code(document_id, language=None)
             else:
-                st.caption(
-                    "Todavía no hay un documento seleccionado."
-                )
+                st.caption("Todavía no hay un documento seleccionado.")
 
             st.write("**Estado de la sesión**")
             st.caption(

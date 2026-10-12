@@ -122,9 +122,8 @@ def consultar_rag(pregunta, tenant_id):
             headers=obtener_headers(),
             json={
                 "query": pregunta,
-                "index_dir": "data/index",
-                "top_k": 5,
-                "tenant_id": tenant_id
+                "tenant_id": tenant_id,
+                "top_k": 3
             },
             timeout=120
         )

@@ -1,25 +1,18 @@
-
 import json
 from datetime import datetime
 from pathlib import Path
 
 import streamlit as st
+from utils.quiz import formatear_opciones
 from services.api import adaptar_contenido
 
 
 def aplicar_estilos():
-    ruta_css = (
-        Path(__file__).resolve().parent.parent
-        / "styles"
-        / "adaptacion.css"
-    )
+    ruta_css = Path(__file__).resolve().parent.parent / "styles" / "adaptacion.css"
 
     if ruta_css.exists():
         css = ruta_css.read_text(encoding="utf-8")
-        st.markdown(
-            f"<style>{css}</style>",
-            unsafe_allow_html=True
-        )
+        st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
 
 
 def mostrar_resumen(resultado):
@@ -28,10 +21,7 @@ def mostrar_resumen(resultado):
     col1, col2 = st.columns(2)
 
     with col1:
-        st.metric(
-            "Tiempo de estudio",
-            f"{resultado.get('tiempo_estudio', 0)} min"
-        )
+        st.metric("Tiempo de estudio", f"{resultado.get('tiempo_estudio', 0)} min")
 
     with col2:
         st.metric("Formato", "Resumen")
@@ -49,9 +39,7 @@ def mostrar_resumen(resultado):
             if parrafo.strip():
                 st.write(parrafo.strip())
 
-    st.caption(
-        resultado.get("evaluacion_calidad", "")
-    )
+    st.caption(resultado.get("evaluacion_calidad", ""))
 
 
 def mostrar_flashcards(resultado):
@@ -67,52 +55,57 @@ def mostrar_flashcards(resultado):
     if "mostrar_respuesta_flashcard" not in st.session_state:
         st.session_state.mostrar_respuesta_flashcard = False
 
-    indice = min(
-        st.session_state.indice_flashcard,
-        len(tarjetas) - 1
-    )
+    indice = min(st.session_state.indice_flashcard, len(tarjetas) - 1)
 
     st.session_state.indice_flashcard = indice
 
     tarjeta = tarjetas[indice]
 
-    st.markdown("""
+    st.markdown(
+        """
     <div class="nm-card-header">
         <h3>Tarjetas de estudio</h3>
         <p>Aprende a tu ritmo, una tarjeta a la vez.</p>
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
     st.progress((indice + 1) / len(tarjetas))
 
     st.markdown(
         f'<div class="nm-progress">'
-        f'Tarjeta {indice + 1} de {len(tarjetas)}'
-        f'</div>',
-        unsafe_allow_html=True
+        f"Tarjeta {indice + 1} de {len(tarjetas)}"
+        f"</div>",
+        unsafe_allow_html=True,
     )
 
-    with st.container(border=True):
-        st.markdown("####  Flashcard")
+    with st.container(border=False):
+        mostrar = st.session_state.mostrar_respuesta_flashcard
+        clase_giro = "is-flipped" if mostrar else ""
 
         st.markdown(
-            f"### {tarjeta.get('pregunta', 'Sin pregunta')}"
+            f"""
+                <h3 class="nm-title-card"> FlashCard </h3>
+            <label class="nm-flip-card">
+            <input type="checkbox" class="nm-flip-toggle" style="display:none">
+                <div class="nm-flip-inner {clase_giro} ">
+                    <div class="nm-flip-front"  >
+                        <p>{tarjeta.get('pregunta', 'Sin pregunta')}</p>
+                    </div>
+                    <div class="nm-flip-back">
+                        <p>{tarjeta.get('respuesta', 'Sin respuesta disponible.')}</p>
+                    </div>
+                </div>
+            </label>
+                    """,
+            unsafe_allow_html=True,
         )
 
-        st.divider()
-
         if st.session_state.mostrar_respuesta_flashcard:
-            st.success(
-                tarjeta.get(
-                    "respuesta",
-                    "Sin respuesta disponible."
-                )
-            )
 
             if st.button(
-                "Ocultar respuesta",
-                use_container_width=True,
-                key="ocultar_flashcard"
+                "Ocultar respuesta", use_container_width=True, key="ocultar_flashcard"
             ):
                 st.session_state.mostrar_respuesta_flashcard = False
                 st.rerun()
@@ -122,7 +115,7 @@ def mostrar_flashcards(resultado):
                 "Mostrar respuesta",
                 type="primary",
                 use_container_width=True,
-                key="mostrar_flashcard"
+                key="mostrar_flashcard",
             ):
                 st.session_state.mostrar_respuesta_flashcard = True
                 st.rerun()
@@ -134,7 +127,7 @@ def mostrar_flashcards(resultado):
             "← Anterior",
             disabled=indice == 0,
             use_container_width=True,
-            key="anterior_flashcard"
+            key="anterior_flashcard",
         ):
             st.session_state.indice_flashcard -= 1
             st.session_state.mostrar_respuesta_flashcard = False
@@ -145,7 +138,7 @@ def mostrar_flashcards(resultado):
             "Siguiente →",
             disabled=indice == len(tarjetas) - 1,
             use_container_width=True,
-            key="siguiente_flashcard"
+            key="siguiente_flashcard",
         ):
             st.session_state.indice_flashcard += 1
             st.session_state.mostrar_respuesta_flashcard = False
@@ -162,72 +155,65 @@ def mostrar_quiz(resultado):
     if "indice_quiz" not in st.session_state:
         st.session_state.indice_quiz = 0
 
-    if "mostrar_respuesta_quiz" not in st.session_state:
-        st.session_state.mostrar_respuesta_quiz = False
-
-    indice = min(
-        st.session_state.indice_quiz,
-        len(preguntas) - 1
-    )
+    indice = min(st.session_state.indice_quiz, len(preguntas) - 1)
 
     st.session_state.indice_quiz = indice
 
     pregunta = preguntas[indice]
 
-    st.markdown("""
+    st.markdown(
+        """
     <div class="nm-card-header">
         <h3>Cuestionario interactivo</h3>
         <p>Comprueba lo aprendido con preguntas abiertas.</p>
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
     st.progress((indice + 1) / len(preguntas))
 
     st.markdown(
         f'<div class="nm-progress">'
-        f'Pregunta {indice + 1} de {len(preguntas)}'
-        f'</div>',
-        unsafe_allow_html=True
+        f"Pregunta {indice + 1} de {len(preguntas)}"
+        f"</div>",
+        unsafe_allow_html=True,
     )
 
-    with st.container(border=True):
-        st.markdown(
-            f"### {pregunta.get('pregunta', 'Sin pregunta')}"
-        )
+    with st.container(border=False):
+        st.markdown(f"### {pregunta.get('pregunta', 'Sin pregunta')}")
 
-        st.write(
-            pregunta.get("opciones", "")
+        opciones_lista = formatear_opciones(pregunta.get("opciones", ""))
+        eleccion: str = st.radio(
+            "Selecciona tu respuesta:",
+            opciones_lista,
+            key=f"quiz_option_{indice}",
+            index=None,
         )
 
         st.divider()
 
-        if st.session_state.mostrar_respuesta_quiz:
-            st.markdown("**Respuesta de referencia**")
-
-            st.success(
-                pregunta.get(
-                    "respuesta_correcta",
-                    "Sin respuesta disponible."
+        if st.button(
+            "Consultar respuesta",
+            type="primary",
+            use_container_width=True,
+            key=f"comprobar_{indice}",
+        ):
+            if not eleccion:
+                st.warning("Por favor, selecciona una respuesta antes de consultarla.")
+            else:
+                respuesta_correcta = pregunta.get(
+                    "respuesta_correcta", "Sin respuesta disponible."
                 )
-            )
-
-            if st.button(
-                "Ocultar respuesta",
-                use_container_width=True,
-                key="ocultar_quiz"
-            ):
-                st.session_state.mostrar_respuesta_quiz = False
-                st.rerun()
-
-        else:
-            if st.button(
-                "Consultar respuesta",
-                type="primary",
-                use_container_width=True,
-                key="mostrar_quiz"
-            ):
-                st.session_state.mostrar_respuesta_quiz = True
-                st.rerun()
+                if (
+                    respuesta_correcta.lower() in eleccion.lower()
+                    or eleccion[0].upper() == respuesta_correcta[0].upper()
+                ):
+                    st.success("🎉 ¡Excelente! Respuesta correcta.")
+                else:
+                    st.error(
+                        f"❌ Incorrecto. La respuesta correcta era: {respuesta_correcta}"
+                    )
 
     col1, col2 = st.columns(2)
 
@@ -236,76 +222,53 @@ def mostrar_quiz(resultado):
             "← Anterior",
             disabled=indice == 0,
             use_container_width=True,
-            key="anterior_quiz"
+            key="anterior_quiz",
         ):
             st.session_state.indice_quiz -= 1
-            st.session_state.mostrar_respuesta_quiz = False
             st.rerun()
 
     with col2:
         if indice == len(preguntas) - 1:
             if st.button(
-                "Reiniciar quiz",
-                use_container_width=True,
-                key="reiniciar_quiz"
+                "Reiniciar quiz", use_container_width=True, key="reiniciar_quiz"
             ):
                 st.session_state.indice_quiz = 0
-                st.session_state.mostrar_respuesta_quiz = False
                 st.rerun()
         else:
-            if st.button(
-                "Siguiente →",
-                use_container_width=True,
-                key="siguiente_quiz"
-            ):
+            if st.button("Siguiente →", use_container_width=True, key="siguiente_quiz"):
                 st.session_state.indice_quiz += 1
-                st.session_state.mostrar_respuesta_quiz = False
                 st.rerun()
 
 
 def mostrar_guion(resultado):
-    st.subheader(
-        resultado.get("titulo", "Guion educativo")
-    )
+    st.subheader(f"🎬 {resultado.get('titulo', 'Guion educativo')}")
 
     escenas = resultado.get("escenas", [])
 
     col1, col2 = st.columns(2)
 
     with col1:
-        st.metric("Escenas", len(escenas))
+        st.metric("🎞️ Total de Escenas", len(escenas))
 
     with col2:
         st.metric(
-            "Duración estimada",
-            resultado.get(
-                "tiempo_estimado",
-                "No especificada"
-            )
+            "⏱️ Duración estimada", resultado.get("tiempo_estimado", "No especificada")
         )
 
-    st.markdown("### Desarrollo del guion")
+    st.divider()
+    st.markdown("### 📜 Desarrollo del guion")
 
     for escena in escenas:
         with st.container(border=True):
             col1, col2 = st.columns([3, 1])
 
             with col1:
-                st.markdown(
-                    f"**Escena {escena.get('numero_escena', '')}**"
-                )
+                st.markdown(f"#### Escena {escena.get('numero_escena', '')}")
 
             with col2:
-                st.caption(
-                    f"⏱ {escena.get('marca_tiempo', '')}"
-                )
+                st.markdown(f"<div style='text-align: right; color: #64748b; font-weight: bold;'>⏱ {escena.get('marca_tiempo', '')}</div>", unsafe_allow_html=True)
 
-            st.write(
-                escena.get(
-                    "narrador",
-                    "Sin narración disponible."
-                )
-            )
+            st.info(escena.get("narrador", "Sin narración disponible."), icon="🗣️")
 
 
 def mostrar_resultado(resultado):
@@ -340,7 +303,7 @@ def guardar_en_libreria(resultado, query, perfil, tenant_id):
         "perfil": perfil,
         "tenant_id": tenant_id,
         "formato": resultado.get("formato", "desconocido"),
-        "resultado": resultado
+        "resultado": resultado,
     }
 
     st.session_state.material_history.insert(0, registro)
@@ -349,7 +312,8 @@ def guardar_en_libreria(resultado, query, perfil, tenant_id):
 def mostrar_adaptacion():
     aplicar_estilos()
 
-    st.markdown("""
+    st.markdown(
+        """
     <div class="nm-hero">
         <h2>Adaptar contenido</h2>
         <p>
@@ -357,7 +321,9 @@ def mostrar_adaptacion():
             interactivos y personalizados.
         </p>
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
     st.markdown("### Configuración del material")
 
@@ -365,18 +331,13 @@ def mostrar_adaptacion():
         query = st.text_area(
             "Tema o pregunta",
             placeholder=(
-                "Ejemplo: ¿Qué es Oracle AI Success Navigator "
-                "y para qué sirve?"
+                "Ejemplo: ¿Qué es Oracle AI Success Navigator " "y para qué sirve?"
             ),
-            height=110
+            height=110,
         )
 
         tenant_id = st.text_input(
-            "Espacio de trabajo",
-            value=st.session_state.get(
-                "tenant_id",
-                "equipo12"
-            )
+            "Espacio de trabajo", value=st.session_state.get("tenant_id", "equipo12")
         )
 
         col1, col2 = st.columns(2)
@@ -384,12 +345,8 @@ def mostrar_adaptacion():
         with col1:
             perfil = st.selectbox(
                 "Perfil de aprendizaje",
-                [
-                    "principiante",
-                    "intermedio",
-                    "avanzado"
-                ],
-                index=1
+                ["principiante", "intermedio", "avanzado"],
+                index=1,
             )
 
         with col2:
@@ -397,25 +354,15 @@ def mostrar_adaptacion():
                 "Resumen": "resumen",
                 "Flashcards": "flashcard",
                 "Quiz": "quiz",
-                "Guion": "guion"
+                "Guion": "guion",
             }
 
-            formato_visible = st.selectbox(
-                "Formato de salida",
-                list(formatos.keys())
-            )
+            formato_visible = st.selectbox("Formato de salida", list(formatos.keys()))
 
-        top_k = st.slider(
-            "Fragmentos de contexto",
-            min_value=1,
-            max_value=10,
-            value=3
-        )
+        top_k = st.slider("Fragmentos de contexto", min_value=1, max_value=10, value=3)
 
         enviar = st.form_submit_button(
-            "Generar contenido",
-            type="primary",
-            use_container_width=True
+            "Generar contenido", type="primary", use_container_width=True
         )
 
     if enviar:
@@ -435,14 +382,12 @@ def mostrar_adaptacion():
                 tenant_id=tenant_id.strip(),
                 perfil=perfil,
                 formato=formatos[formato_visible],
-                top_k=top_k
+                top_k=top_k,
             )
 
         if correcto:
             if not isinstance(resultado, dict):
-                st.error(
-                    "El backend devolvió un resultado inesperado."
-                )
+                st.error("El backend devolvió un resultado inesperado.")
                 return
 
             st.session_state.resultado_adaptacion = resultado
@@ -451,39 +396,29 @@ def mostrar_adaptacion():
             st.session_state.mostrar_respuesta_flashcard = False
 
             st.session_state.indice_quiz = 0
-            st.session_state.mostrar_respuesta_quiz = False
 
             guardar_en_libreria(
                 resultado=resultado,
                 query=query.strip(),
                 perfil=perfil,
-                tenant_id=tenant_id.strip()
+                tenant_id=tenant_id.strip(),
             )
 
-            st.success(
-                "Material generado correctamente "
-                "y agregado a la Librería."
-            )
+            st.success("Material generado correctamente " "y agregado a la Librería.")
 
         else:
             st.error(str(resultado))
             return
 
-    resultado_guardado = st.session_state.get(
-        "resultado_adaptacion"
-    )
+    resultado_guardado = st.session_state.get("resultado_adaptacion")
 
     if resultado_guardado:
         mostrar_resultado(resultado_guardado)
 
         st.download_button(
             "Descargar material en JSON",
-            data=json.dumps(
-                resultado_guardado,
-                ensure_ascii=False,
-                indent=2
-            ),
+            data=json.dumps(resultado_guardado, ensure_ascii=False, indent=2),
             file_name="contenido_adaptado.json",
             mime="application/json",
-            use_container_width=True
+            use_container_width=True,
         )
