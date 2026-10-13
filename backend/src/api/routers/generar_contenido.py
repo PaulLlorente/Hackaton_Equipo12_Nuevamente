@@ -11,6 +11,7 @@ from backend.src.api.models.schemas_salida import (
     Flashcards,
     Quiz,
     Guion,
+    Tutorial,
 )
 from backend.src.nuevamente_rag.vector_store import MotorVectorialRAG
 
@@ -25,6 +26,7 @@ MAPA_ESQUEMAS = {
     "flashcard": Flashcards,
     "quiz": Quiz,
     "guion": Guion,
+    "tutorial": Tutorial
 }
 
 SYSTEM_PROMPT = """Eres un Diseñador Instruccional Senior y Pedagogo Experto en IA.
