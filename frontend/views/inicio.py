@@ -31,7 +31,7 @@ def mostrar_inicio():
         st.metric(label="Materiales generados", value=len(materiales))
 
     with col3:
-        st.metric(label="Formatos disponibles", value=4)
+        st.metric(label="Formatos disponibles", value=5)
 
     st.divider()
 
@@ -114,7 +114,7 @@ def mostrar_inicio():
                     )
 
                     if st.button("Ver en Librería", key=f"ver_material_{indice}"):
-                        st.session_state.pagina = "Librería"
+                        st.session_state.ir_a = "Librería"
                         st.rerun()
 
         elif documentos:

@@ -71,6 +71,17 @@ def mostrar_flashcards(resultado):
         unsafe_allow_html=True,
     )
 
+    col_m1, col_m2 = st.columns(2)
+    with col_m1:
+        st.metric("⏱️ Tiempo de estudio", f"{resultado.get('tiempo_estudio', 0)} min")
+    with col_m2:
+        st.metric("🗂️ Total de tarjetas", len(tarjetas))
+
+    conceptos = (resultado.get("conceptos_clave") or "").strip()
+    if conceptos:
+        with st.expander("🔑 Conceptos clave", expanded=True):
+            st.write(conceptos)
+
     st.progress((indice + 1) / len(tarjetas))
 
     st.markdown(
@@ -144,6 +155,11 @@ def mostrar_flashcards(resultado):
             st.session_state.mostrar_respuesta_flashcard = False
             st.rerun()
 
+    evaluacion = (resultado.get("evaluacion_calidad") or "").strip()
+    if evaluacion:
+        st.divider()
+        st.caption(f"✨ **Evaluación de calidad:** {evaluacion}")
+
 
 def mostrar_quiz(resultado):
     preguntas = resultado.get("contenido_adaptado", [])
@@ -165,11 +181,22 @@ def mostrar_quiz(resultado):
         """
     <div class="nm-card-header">
         <h3>Cuestionario interactivo</h3>
-        <p>Comprueba lo aprendido con preguntas abiertas.</p>
+        <p>Comprueba lo aprendido con preguntas de selección múltiple.</p>
     </div>
     """,
         unsafe_allow_html=True,
     )
+
+    col_m1, col_m2 = st.columns(2)
+    with col_m1:
+        st.metric("⏱️ Tiempo de estudio", f"{resultado.get('tiempo_estudio', 0)} min")
+    with col_m2:
+        st.metric("❓ Total de preguntas", len(preguntas))
+
+    conceptos = (resultado.get("conceptos_clave") or "").strip()
+    if conceptos:
+        with st.expander("🔑 Conceptos clave", expanded=True):
+            st.write(conceptos)
 
     st.progress((indice + 1) / len(preguntas))
 
@@ -239,6 +266,11 @@ def mostrar_quiz(resultado):
                 st.session_state.indice_quiz += 1
                 st.rerun()
 
+    evaluacion = (resultado.get("evaluacion_calidad") or "").strip()
+    if evaluacion:
+        st.divider()
+        st.caption(f"✨ **Evaluación de calidad:** {evaluacion}")
+
 
 def mostrar_guion(resultado):
     st.subheader(f"🎬 {resultado.get('titulo', 'Guion educativo')}")
@@ -266,9 +298,50 @@ def mostrar_guion(resultado):
                 st.markdown(f"#### Escena {escena.get('numero_escena', '')}")
 
             with col2:
-                st.markdown(f"<div style='text-align: right; color: #64748b; font-weight: bold;'>⏱ {escena.get('marca_tiempo', '')}</div>", unsafe_allow_html=True)
+                st.markdown(
+                    f"<div style='text-align: right; color: #64748b; font-weight: bold;'>⏱ {escena.get('marca_tiempo', '')}</div>",
+                    unsafe_allow_html=True,
+                )
 
             st.info(escena.get("narrador", "Sin narración disponible."), icon="🗣️")
+
+
+def mostrar_tutorial(resultado: dict):
+
+    st.markdown("## Tutorial de aprendizaje")
+    st.subheader(f" {resultado.get('titulo', '')}", icon="📚")
+
+    st.divider()
+
+    col1, col2 = st.columns(2)
+    with col1:
+        col1.metric(
+            "⏰Tiempo estimado de aprendizaje",
+            resultado.get("tiempo_estimado", "No especificado"),
+        )
+    with col2:
+        col2.metric("Total de pasos", len(resultado.get("pasos", [])))
+
+    requisitos = [r for r in resultado.get("requisitos_previos", [])]
+    if requisitos:
+        with st.expander("📋 Requisitos previos", expanded=True):
+            for i, r in enumerate(requisitos):
+                st.write(f"{i+1}. {r}")
+
+    st.divider()
+    st.markdown("## 📚 Paso a paso")
+
+    for p in resultado.get("pasos", []):
+        with st.container(border=True):
+            st.markdown(f"### Paso {p['numero_paso']}: {p['titulo']}")
+
+            st.write(p["instrucciones"])
+
+            if (p.get("codigo_o_comando") or "").strip():
+                st.code(p["codigo_o_comando"], language="bash")
+
+            if (p.get("consejo_o_nota") or "").strip():
+                st.info(p["consejo_o_nota"], icon="💡")
 
 
 def mostrar_resultado(resultado):
@@ -288,6 +361,9 @@ def mostrar_resultado(resultado):
 
     elif formato == "guion":
         mostrar_guion(resultado)
+
+    elif formato == "tutorial":
+        mostrar_tutorial(resultado)
 
     else:
         st.json(resultado)
@@ -355,6 +431,7 @@ def mostrar_adaptacion():
                 "Flashcards": "flashcard",
                 "Quiz": "quiz",
                 "Guion": "guion",
+                "Tutorial": "tutorial",
             }
 
             formato_visible = st.selectbox("Formato de salida", list(formatos.keys()))

@@ -5,7 +5,7 @@ from views.auth import mostrar_login, mostrar_registro
 from views.inicio import mostrar_inicio
 from views.carga import mostrar_carga
 from views.consulta import mostrar_consulta
-from views.adaptacion import aplicar_estilos, mostrar_adaptacion
+from views.adaptacion import aplicar_estilos, mostrar_adaptacion, mostrar_resultado
 from views.cuenta import mostrar_cuenta
 
 st.set_page_config(
@@ -43,6 +43,7 @@ def cerrar_sesion():
     st.session_state.document_id = None
     st.session_state.documentos = []
     st.session_state.material_history = []
+    st.session_state.material_libreria_activo = None
     st.session_state.pantalla_auth = "login"
     st.session_state.ir_a = "Dashboard"
 
@@ -150,25 +151,43 @@ def mostrar_libreria():
 
         with st.expander(f"{titulo} - {formato} ({fecha})"):
             st.write(f"**Perfil:** {material.get('perfil', 'No especificado')}")
-
             st.write(f"**Formato:** {formato}")
 
             resultado = material.get("resultado")
 
             if resultado is not None:
-                st.json(resultado)
-
                 import json
 
-                st.download_button(
-                    "Descargar JSON",
-                    data=json.dumps(resultado, ensure_ascii=False, indent=2),
-                    file_name=f"material_{indice + 1}.json",
-                    mime="application/json",
-                    key=f"descargar_material_{indice}",
-                )
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    if st.button(
+                        "👁️ Visualizar material",
+                        key=f"ver_lib_{indice}",
+                        type="primary",
+                        use_container_width=True,
+                    ):
+                        # Guardamos cuál material queremos ver y reiniciamos índices
+                        st.session_state.material_libreria_activo = resultado
+                        st.session_state.indice_flashcard = 0
+                        st.session_state.mostrar_respuesta_flashcard = False
+                        st.session_state.indice_quiz = 0
+
+                with col2:
+                    st.download_button(
+                        "Descargar JSON",
+                        data=json.dumps(resultado, ensure_ascii=False, indent=2),
+                        file_name=f"material_{indice + 1}.json",
+                        mime="application/json",
+                        key=f"descargar_material_{indice}",
+                        use_container_width=True,
+                    )
             else:
-                st.caption("Este registro no contiene " "un resultado descargable.")
+                st.caption("Este registro no contiene un resultado descargable.")
+
+    # FUERA DEL FOR: Renderizamos el material seleccionado usando la función existente mostrar_resultado
+    if st.session_state.get("material_libreria_activo"):
+        mostrar_resultado(st.session_state.material_libreria_activo)
 
 
 def main():
