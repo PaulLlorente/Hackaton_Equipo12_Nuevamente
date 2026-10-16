@@ -70,6 +70,7 @@ class AdaptarRequest(BaseModel):
         description="Formato educativo deseado"
     )
     top_k: int = Field(default=3, ge=1, le=10, description="Cantidad de fragmentos a recuperar del RAG")
+    cantidad_items: int = Field(default=3, ge=1, le=10, description="Cantidad de items a generar")
 
 # Unión tipada para respuesta según el formato seleccionado
 AdaptarResponse = Union[Resumen, Flashcards, Quiz, Guion, Tutorial]
