@@ -174,6 +174,10 @@ def cargar_estilos():
             padding: 25px;
             margin-bottom: 20px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+
+            width: 100%;
+            min-height: 200px;
+            box-sizing: border-box;
         }
 
         .card h3 {
@@ -358,5 +362,5 @@ def cargar_estilos():
 
         </style>
         """,
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )

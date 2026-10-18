@@ -23,6 +23,10 @@ def mostrar_login():
     with centro:
         st.subheader("Iniciar sesión")
 
+        if st.session_state.get("mensaje_registro_exitoso"):
+            st.success(st.session_state.mensaje_registro_exitoso)
+            st.session_state.mensaje_registro_exitoso = None
+
         with st.form("form_login"):
             email = st.text_input(
                 "Correo electrónico",
@@ -135,9 +139,11 @@ def mostrar_registro():
                     )
 
                 if correcto:
-                    st.success("Tu cuenta fue creada correctamente.")
+                    st.session_state.mensaje_registro_exitoso = (
+                        "Tu cuenta fue creada correctamente. Ahora puedes iniciar sesión."
+                    )
                     st.session_state.pantalla_auth = "login"
-                    st.info("Ahora puedes iniciar sesión.")
+                    st.rerun()
                 else:
                     st.error(str(resultado))
 
