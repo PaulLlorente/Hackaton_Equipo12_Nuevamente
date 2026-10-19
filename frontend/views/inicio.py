@@ -1,5 +1,7 @@
 ﻿import streamlit as st
 
+from utils.metadata import formatear_document_id
+
 
 def mostrar_inicio():
     st.markdown(
@@ -63,7 +65,7 @@ def mostrar_inicio():
             <div class="card">
                 <h3>Contenido adaptado</h3>
                 <p>
-                    Convierte información técnica en resúmenes,
+                    Convierte información técnica en tutoriales, resúmenes,
                     flashcards, cuestionarios y guiones.
                 </p>
             </div>
@@ -114,7 +116,14 @@ def mostrar_inicio():
                     )
 
                     if st.button("Ver en Librería", key=f"ver_material_{indice}"):
+                        st.session_state.material_libreria_activo = material.get(
+                            "resultado"
+                        )
                         st.session_state.ir_a = "Librería"
+
+                        st.session_state.mostrar_respuesta_flashcard = False
+                        st.session_state.indice_quiz = 0
+                        st.session_state.indice_flashcard = 0
                         st.rerun()
 
         elif documentos:
@@ -146,7 +155,15 @@ def mostrar_inicio():
             document_id = st.session_state.get("document_id")
 
             if document_id:
-                st.code(document_id, language=None)
+                ultimo_nombre = (
+                    documentos[-1].get("nombre")
+                    if documentos and isinstance(documentos[-1], dict)
+                    else None
+                )
+                st.code(
+                    formatear_document_id(document_id, ultimo_nombre),
+                    language=None,
+                )
             else:
                 st.caption("Todavía no hay un documento seleccionado.")
 

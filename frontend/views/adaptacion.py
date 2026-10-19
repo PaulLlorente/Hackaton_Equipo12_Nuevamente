@@ -5,6 +5,7 @@ from pathlib import Path
 import streamlit as st
 from utils.quiz import formatear_opciones
 from services.api import adaptar_contenido
+from utils.metadata import obtener_metadata
 
 
 def aplicar_estilos():
@@ -40,6 +41,47 @@ def mostrar_resumen(resultado):
                 st.write(parrafo.strip())
 
     st.caption(resultado.get("evaluacion_calidad", ""))
+
+
+def _mostrar_respuesta_fc():
+    st.session_state.mostrar_respuesta_flashcard = True
+
+
+def _ocultar_respuesta_fc():
+    st.session_state.mostrar_respuesta_flashcard = False
+
+
+def _anterior_fc():
+    st.session_state.indice_flashcard = max(
+        0, st.session_state.get("indice_flashcard", 0) - 1
+    )
+    st.session_state.mostrar_respuesta_flashcard = False
+
+
+def _siguiente_fc(total: int):
+    st.session_state.indice_flashcard = min(
+        total - 1, st.session_state.get("indice_flashcard", 0) + 1
+    )
+    st.session_state.mostrar_respuesta_flashcard = False
+
+
+def _anterior_quiz():
+    st.session_state.indice_quiz = max(0, st.session_state.get("indice_quiz", 0) - 1)
+
+
+def _siguiente_quiz(total: int):
+    st.session_state.indice_quiz = min(
+        total - 1, st.session_state.get("indice_quiz", 0) + 1
+    )
+
+
+def _reiniciar_quiz():
+    st.session_state.indice_quiz = 0
+
+
+def _reiniciar_flashcards():
+    st.session_state.indice_flashcard = 0
+    st.session_state.mostrar_respuesta_flashcard = False
 
 
 def mostrar_flashcards(resultado):
@@ -98,7 +140,7 @@ def mostrar_flashcards(resultado):
         st.markdown(
             f"""
                 <h3 class="nm-title-card"> FlashCard </h3>
-            <label class="nm-flip-card">
+            <label class="nm-flip-card" data-card="{indice}">
             <input type="checkbox" class="nm-flip-toggle" style="display:none">
                 <div class="nm-flip-inner {clase_giro} ">
                     <div class="nm-flip-front"  >
@@ -114,46 +156,49 @@ def mostrar_flashcards(resultado):
         )
 
         if st.session_state.mostrar_respuesta_flashcard:
-
-            if st.button(
-                "Ocultar respuesta", use_container_width=True, key="ocultar_flashcard"
-            ):
-                st.session_state.mostrar_respuesta_flashcard = False
-                st.rerun()
-
+            st.button(
+                "Ocultar respuesta",
+                use_container_width=True,
+                key="ocultar_flashcard",
+                on_click=_ocultar_respuesta_fc,
+            )
         else:
-            if st.button(
+            st.button(
                 "Mostrar respuesta",
                 type="primary",
                 use_container_width=True,
                 key="mostrar_flashcard",
-            ):
-                st.session_state.mostrar_respuesta_flashcard = True
-                st.rerun()
+                on_click=_mostrar_respuesta_fc,
+            )
 
     col1, col2 = st.columns(2)
 
     with col1:
-        if st.button(
+        st.button(
             "← Anterior",
             disabled=indice == 0,
             use_container_width=True,
             key="anterior_flashcard",
-        ):
-            st.session_state.indice_flashcard -= 1
-            st.session_state.mostrar_respuesta_flashcard = False
-            st.rerun()
+            on_click=_anterior_fc,
+        )
 
     with col2:
-        if st.button(
-            "Siguiente →",
-            disabled=indice == len(tarjetas) - 1,
-            use_container_width=True,
-            key="siguiente_flashcard",
-        ):
-            st.session_state.indice_flashcard += 1
-            st.session_state.mostrar_respuesta_flashcard = False
-            st.rerun()
+        if indice == len(tarjetas) - 1:
+            st.button(
+                "Reiniciar Flashcards ",
+                use_container_width=True,
+                key="flashcard_quiz",
+                on_click=_reiniciar_flashcards,
+            )
+        else:
+            st.button(
+                "Siguiente →",
+                disabled=indice == len(tarjetas) - 1,
+                use_container_width=True,
+                key="siguiente_flashcard",
+                on_click=_siguiente_fc,
+                args=(len(tarjetas),),
+            )
 
     evaluacion = (resultado.get("evaluacion_calidad") or "").strip()
     if evaluacion:
@@ -245,26 +290,30 @@ def mostrar_quiz(resultado):
     col1, col2 = st.columns(2)
 
     with col1:
-        if st.button(
+        st.button(
             "← Anterior",
             disabled=indice == 0,
             use_container_width=True,
             key="anterior_quiz",
-        ):
-            st.session_state.indice_quiz -= 1
-            st.rerun()
+            on_click=_anterior_quiz,
+        )
 
     with col2:
         if indice == len(preguntas) - 1:
-            if st.button(
-                "Reiniciar quiz", use_container_width=True, key="reiniciar_quiz"
-            ):
-                st.session_state.indice_quiz = 0
-                st.rerun()
+            st.button(
+                "Reiniciar quiz",
+                use_container_width=True,
+                key="reiniciar_quiz",
+                on_click=_reiniciar_quiz,
+            )
         else:
-            if st.button("Siguiente →", use_container_width=True, key="siguiente_quiz"):
-                st.session_state.indice_quiz += 1
-                st.rerun()
+            st.button(
+                "Siguiente →",
+                use_container_width=True,
+                key="siguiente_quiz",
+                on_click=_siguiente_quiz,
+                args=(len(preguntas),),
+            )
 
     evaluacion = (resultado.get("evaluacion_calidad") or "").strip()
     if evaluacion:
@@ -367,6 +416,18 @@ def mostrar_resultado(resultado):
 
     else:
         st.json(resultado)
+    fuentes = resultado.get("fuentes", [])
+    if fuentes:
+        st.divider()
+        st.markdown("### 📚 Fuentes utilizadas")
+        for fuente in fuentes:
+            # Nota: obtener_metadata espera un dict con {"metadata": {...}}
+            origen, doc_id, tenant_res = obtener_metadata(
+                {"metadata": fuente},
+                st.session_state.get("tenant_id", "equipo12"),
+            )
+
+            st.caption(f"📄 **{origen}** — ID: `{doc_id}` (Espacio: `{tenant_res}`)")
 
 
 def guardar_en_libreria(resultado, query, perfil, tenant_id):
@@ -436,7 +497,27 @@ def mostrar_adaptacion():
 
             formato_visible = st.selectbox("Formato de salida", list(formatos.keys()))
 
-        top_k = st.slider("Fragmentos de contexto", min_value=1, max_value=10, value=3)
+        col_rag, col_items = st.columns(2)
+
+        with col_rag:
+
+            top_k = st.slider(
+                "**Fragmentos de contexto (RAG)**",
+                min_value=1,
+                max_value=10,
+                value=3,
+                help="Define cuántos fragmentos de texto recuperados se utilizarán como contexto para generar la respuesta. Un valor mayor aporta más contexto, pero puede incluir información menos relevante.",
+            )
+
+        with col_items:
+
+            cantidad_items = st.slider(
+                "**Cantidad de elementos**",
+                min_value=1,
+                max_value=10,
+                value=3,
+                help="Define cuántos elementos (tarjetas, preguntas, escenas o pasos) generará la IA. En el formato Resumen se ignora este valor.",
+            )
 
         enviar = st.form_submit_button(
             "Generar contenido", type="primary", use_container_width=True
@@ -460,6 +541,7 @@ def mostrar_adaptacion():
                 perfil=perfil,
                 formato=formatos[formato_visible],
                 top_k=top_k,
+                cantidad_items=cantidad_items,
             )
 
         if correcto:

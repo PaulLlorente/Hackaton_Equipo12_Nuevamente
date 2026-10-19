@@ -7,6 +7,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from backend.src.api.models.schemas_salida import (
     AdaptarRequest,
     AdaptarResponse,
+    FuenteCitada,
     Resumen,
     Flashcards,
     Quiz,
@@ -26,7 +27,7 @@ MAPA_ESQUEMAS = {
     "flashcard": Flashcards,
     "quiz": Quiz,
     "guion": Guion,
-    "tutorial": Tutorial
+    "tutorial": Tutorial,
 }
 
 SYSTEM_PROMPT = """Eres un Diseñador Instruccional Senior y Pedagogo Experto en IA.
@@ -39,6 +40,10 @@ Reglas obligatorias:
    - intermedio: Balance práctico-teórico, profundidad funcional.
    - avanzado: Rigor técnico exhaustivo, arquitectura, trade-offs y mejores prácticas.
 3. Formato requerido: {formato}. Debes estructurar la salida exactamente bajo el esquema asignado.
+4. Cantidad de elementos:
+    - Si el formato es una colección (tarjetas en flashcards, preguntas en quiz, escenas en guion o pasos en tutorial):
+        debes generar exactamente {cantidad_items} elementos en su lista.
+    - Si el formato es resumen: ignora esta cantidad y genera una síntesis fluida y coherente.
 """
 
 
@@ -61,7 +66,12 @@ async def adaptar_contenido(peticion: AdaptarRequest):
                 detail=f"No se encontró información para el tema '{peticion.query}' en el tenant '{peticion.tenant_id}'.",
             )
 
-        contexto_unificado = "\n\n".join([doc.page_content for doc in documentos])
+        contexto_unificado = "\n\n".join(
+            [
+                f"[Fuente: {doc.metadata.get('origen', 'Desconocido')}]\n{doc.page_content}"
+                for doc in documentos
+            ]
+        )
 
         # 2. Configurar LLM con salida estructurada según el formato
         esquema_salida = MAPA_ESQUEMAS[peticion.formato]
@@ -94,8 +104,29 @@ Genera la adaptación pedagógica para la consulta: {query}""",
                 "formato": peticion.formato,
                 "contexto": contexto_unificado,
                 "query": peticion.query,
+                "cantidad_items": peticion.cantidad_items,
             }
         )
+
+
+        fuentes_unicas = []
+        ids_vistos = set()
+
+        for doc in documentos:
+            meta = doc.metadata or {}
+            doc_id = meta.get("document_id", "No disponible")
+
+            if doc_id not in ids_vistos:
+                ids_vistos.add(doc_id)
+                fuentes_unicas.append(
+                    FuenteCitada(
+                        origen=meta.get("origen", "Documento sin nombre"),
+                        document_id=doc_id,
+                        tenant_id=meta.get("tenant_id", peticion.tenant_id),
+                    )
+                )
+
+        resultado.fuentes = fuentes_unicas
 
         return resultado
 

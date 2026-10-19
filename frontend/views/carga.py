@@ -1,7 +1,7 @@
-
 import streamlit as st
 
 from services.api import cargar_documento
+from utils.metadata import formatear_document_id
 
 
 def mostrar_carga():
@@ -78,7 +78,12 @@ def mostrar_carga():
                 )
                 return
 
-            document_id = resultado.get("document_id")
+            raw_doc_id = resultado.get("document_id")
+            document_id = (
+                formatear_document_id(raw_doc_id, archivo.name)
+                if raw_doc_id
+                else None
+            )
 
             if document_id:
                 st.session_state.document_id = document_id
@@ -102,7 +107,7 @@ def mostrar_carga():
                 st.session_state.documentos.append(registro)
 
             st.success(
-                "El backend confirmó el procesamiento del documento."
+                "¡Documento procesado con éxito! Ya puedes adaptar su contenido a tu nivel de aprendizaje."
             )
 
             if document_id:
@@ -129,15 +134,10 @@ def mostrar_carga():
 
         for documento in reversed(documentos):
             with st.container(border=True):
-                st.write(
-                    f"**{documento.get('nombre', 'Documento')}**"
+                nombre_doc = documento.get("nombre", "Documento")
+                doc_id_legible = formatear_document_id(
+                    documento.get("document_id"), nombre_doc
                 )
-
-                st.write(
-                    f"Document ID: "
-                    f"`{documento.get('document_id') or 'No disponible'}`"
-                )
-
-                st.write(
-                    f"Tenant: `{documento.get('tenant_id', '')}`"
-                )
+                st.write(f"**{nombre_doc}**")
+                st.write(f"Document ID: `{doc_id_legible}`")
+                st.write(f"Tenant: `{documento.get('tenant_id', '')}`")
