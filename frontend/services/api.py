@@ -1,11 +1,9 @@
-import os
 import uuid
 from pathlib import Path
 
 import requests
 import streamlit as st
-
-API_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
+from .configuracion import API_URL
 
 MENSAJE_SIN_CONEXION = (
     "No se pudo conectar con el backend. Verifica que FastAPI esté ejecutándose."
@@ -38,7 +36,9 @@ def formatear_detalle(detalle):
             mensajes.append(str(error))
             continue
 
-        campo = ".".join(str(parte) for parte in error.get("loc", []) if parte != "body")
+        campo = ".".join(
+            str(parte) for parte in error.get("loc", []) if parte != "body"
+        )
         mensaje = error.get("msg", "valor inválido")
         mensajes.append(f"{campo}: {mensaje}" if campo else mensaje)
 
