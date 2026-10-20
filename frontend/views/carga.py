@@ -4,6 +4,7 @@ import html
 import streamlit as st
 
 from services.api import cargar_documento
+from utils.metadata import formatear_document_id
 
 
 def mostrar_carga():
@@ -24,7 +25,10 @@ def mostrar_carga():
         unsafe_allow_html=True
     )
 
-    col_formulario, col_informacion = st.columns([1.15, 1], gap="large")
+    col_formulario, col_informacion = st.columns(
+        [1.15, 1],
+        gap="large"
+    )
 
     with col_formulario:
         with st.container(key="carga-formulario"):
@@ -87,6 +91,7 @@ def mostrar_carga():
                     """,
                     unsafe_allow_html=True
                 )
+
             else:
                 st.markdown(
                     """
@@ -130,7 +135,12 @@ def mostrar_carga():
                 st.error("El servidor devolvió una respuesta inesperada.")
                 return
 
-            document_id = resultado.get("document_id")
+            raw_doc_id = resultado.get("document_id")
+            document_id = (
+                formatear_document_id(raw_doc_id, archivo.name)
+                if raw_doc_id
+                else None
+            )
 
             if document_id:
                 st.session_state.document_id = document_id
@@ -144,11 +154,15 @@ def mostrar_carga():
                 "tenant_id": tenant_id
             }
 
-            existe = any(
-                documento.get("document_id") == document_id
-                and documento.get("tenant_id") == tenant_id
-                for documento in st.session_state.documentos
-            ) if document_id else False
+            existe = (
+                any(
+                    documento.get("document_id") == document_id
+                    and documento.get("tenant_id") == tenant_id
+                    for documento in st.session_state.documentos
+                )
+                if document_id
+                else False
+            )
 
             if not existe:
                 st.session_state.documentos.append(registro)
@@ -169,6 +183,7 @@ def mostrar_carga():
 
             with st.expander("Ver respuesta del servidor"):
                 st.json(resultado)
+
         else:
             st.error(str(resultado))
 
@@ -186,11 +201,18 @@ def mostrar_carga():
 
     if documentos:
         for documento in reversed(documentos):
-            nombre = html.escape(
-                str(documento.get("nombre", "Documento"))
+            nombre_doc = str(
+                documento.get("nombre", "Documento")
             )
+
+            doc_id_legible = formatear_document_id(
+                documento.get("document_id"),
+                nombre_doc
+            )
+
+            nombre = html.escape(nombre_doc)
             identificador = html.escape(
-                str(documento.get("document_id") or "No disponible")
+                str(doc_id_legible or "No disponible")
             )
             tenant = html.escape(
                 str(documento.get("tenant_id", ""))
@@ -209,6 +231,7 @@ def mostrar_carga():
                 """,
                 unsafe_allow_html=True
             )
+
     else:
         st.markdown(
             """

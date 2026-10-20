@@ -22,11 +22,7 @@ def cargar_estilos_auth():
             align-items: center;
             justify-content: center;
             border-radius: 18px;
-            background: linear-gradient(
-                135deg,
-                #a81780,
-                #35dff2
-            );
+            background: linear-gradient(135deg, #a81780, #35dff2);
             color: #ffffff;
             font-size: 23px;
             font-weight: 800;
@@ -62,11 +58,7 @@ def cargar_estilos_auth():
             height: 3px;
             margin: 18px auto 0 auto;
             border-radius: 10px;
-            background: linear-gradient(
-                90deg,
-                #f44ec6,
-                #35dff2
-            );
+            background: linear-gradient(90deg, #f44ec6, #35dff2);
         }
 
         .st-key-auth-panel {
@@ -230,6 +222,10 @@ def mostrar_login():
         with st.container(key="auth-panel"):
             st.subheader("Iniciar sesión")
 
+            if st.session_state.get("mensaje_registro_exitoso"):
+                st.success(st.session_state.mensaje_registro_exitoso)
+                st.session_state.mensaje_registro_exitoso = None
+
             with st.form("form_login"):
                 email = st.text_input(
                     "Correo electrónico",
@@ -359,9 +355,12 @@ def mostrar_registro():
                         )
 
                     if correcto:
-                        st.success("Tu cuenta fue creada correctamente.")
+                        st.session_state.mensaje_registro_exitoso = (
+                            "Tu cuenta fue creada correctamente. "
+                            "Ahora puedes iniciar sesión."
+                        )
                         st.session_state.pantalla_auth = "login"
-                        st.info("Ahora puedes iniciar sesión.")
+                        st.rerun()
 
                     else:
                         st.error(str(resultado))

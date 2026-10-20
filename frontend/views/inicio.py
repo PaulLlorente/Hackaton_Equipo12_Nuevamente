@@ -3,6 +3,8 @@ import html
 
 import streamlit as st
 
+from utils.metadata import formatear_document_id
+
 
 def mostrar_inicio():
     documentos = st.session_state.get("documentos", [])
@@ -16,8 +18,8 @@ def mostrar_inicio():
                     TU ESPACIO DE APRENDIZAJE
                 </span>
                 <h1>
-                    <span style="color: #f1f5ff !important;">Aprende de</span>
-                    <span style="color: #f44ec6 !important;">otra manera.</span>
+                    <span style="color:#f1f5ff !important;">Aprende de</span>
+                    <span style="color:#f44ec6 !important;">otra manera.</span>
                 </h1>
                 <p>
                     Transforma documentación técnica en experiencias
@@ -57,7 +59,9 @@ def mostrar_inicio():
 
     columnas = st.columns(3, gap="medium")
 
-    for columna, (icono, titulo, valor, descripcion, color) in zip(columnas, metricas):
+    for columna, (icono, titulo, valor, descripcion, color) in zip(
+        columnas, metricas
+    ):
         with columna:
             st.markdown(
                 f"""
@@ -120,14 +124,18 @@ def mostrar_inicio():
 
     for columna, herramienta in zip(columnas, herramientas):
         with columna:
-            with st.container(key=f"dashboard-tool-{herramienta['clave']}"):
+            with st.container(
+                key=f"dashboard-tool-{herramienta['clave']}"
+            ):
                 st.markdown(
                     f"""
                     <div class="dashboard-tool-content">
                         <div class="dashboard-tool-icon dashboard-icon-{herramienta['color']}">
                             {herramienta['icono']}
                         </div>
-                        <div class="dashboard-tool-tag">{herramienta['etiqueta']}</div>
+                        <div class="dashboard-tool-tag">
+                            {herramienta['etiqueta']}
+                        </div>
                         <h3>{herramienta['titulo']}</h3>
                         <p>{herramienta['descripcion']}</p>
                     </div>
@@ -139,7 +147,11 @@ def mostrar_inicio():
                     herramienta["boton"],
                     key=herramienta["clave"],
                     use_container_width=True,
-                    type="primary" if herramienta["color"] == "pink" else "secondary"
+                    type=(
+                        "primary"
+                        if herramienta["color"] == "pink"
+                        else "secondary"
+                    )
                 ):
                     st.session_state.ir_a = herramienta["destino"]
                     st.rerun()
@@ -154,7 +166,10 @@ def mostrar_inicio():
         unsafe_allow_html=True
     )
 
-    col_actividad, col_espacio = st.columns([1.7, 1], gap="medium")
+    col_actividad, col_espacio = st.columns(
+        [1.7, 1],
+        gap="medium"
+    )
 
     with col_actividad:
         with st.container(key="dashboard-activity"):
@@ -162,9 +177,15 @@ def mostrar_inicio():
 
             if materiales:
                 for indice, material in enumerate(materiales[:5]):
-                    nombre = html.escape(str(material.get("archivo", "Material educativo")))
-                    formato = html.escape(str(material.get("formato", "Sin formato")))
-                    fecha = html.escape(str(material.get("fecha", "Sin fecha")))
+                    nombre = html.escape(
+                        str(material.get("archivo", "Material educativo"))
+                    )
+                    formato = html.escape(
+                        str(material.get("formato", "Sin formato"))
+                    )
+                    fecha = html.escape(
+                        str(material.get("fecha", "Sin fecha"))
+                    )
 
                     st.markdown(
                         f"""
@@ -183,7 +204,13 @@ def mostrar_inicio():
                         "Ver en Librería",
                         key=f"ver_material_{indice}"
                     ):
+                        st.session_state.material_libreria_activo = (
+                            material.get("resultado")
+                        )
                         st.session_state.ir_a = "Librería"
+                        st.session_state.mostrar_respuesta_flashcard = False
+                        st.session_state.indice_quiz = 0
+                        st.session_state.indice_flashcard = 0
                         st.rerun()
 
             elif documentos:
@@ -213,6 +240,7 @@ def mostrar_inicio():
                         """,
                         unsafe_allow_html=True
                     )
+
             else:
                 st.markdown(
                     """
@@ -235,11 +263,23 @@ def mostrar_inicio():
 
             document_id = st.session_state.get("document_id")
 
-            documento_actual = (
-                html.escape(str(document_id))
-                if document_id
-                else "Sin documento seleccionado"
-            )
+            if document_id:
+                ultimo_nombre = (
+                    documentos[-1].get("nombre")
+                    if documentos and isinstance(documentos[-1], dict)
+                    else None
+                )
+
+                documento_actual = html.escape(
+                    str(
+                        formatear_document_id(
+                            document_id,
+                            ultimo_nombre
+                        )
+                    )
+                )
+            else:
+                documento_actual = "Sin documento seleccionado"
 
             estado = (
                 "Sesión con token disponible"

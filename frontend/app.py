@@ -1,3 +1,4 @@
+import json
 import streamlit as st
 
 from styles.estilos import cargar_estilos
@@ -44,6 +45,8 @@ def cerrar_sesion():
     st.session_state.documentos = []
     st.session_state.material_history = []
     st.session_state.material_libreria_activo = None
+    st.session_state.resultado_consulta = None
+    st.session_state.resultado_adaptacion = None
     st.session_state.pantalla_auth = "login"
     st.session_state.ir_a = "Dashboard"
 
@@ -130,64 +133,164 @@ def mostrar_aplicacion():
     elif opcion == "Mi cuenta":
         mostrar_cuenta()
 
+def cerrar_visor_libreria():
+    st.session_state.material_libreria_activo = None
+
+
+@st.dialog(
+    "📖 Visualizador de contenido interactivo",
+    width="large",
+    on_dismiss=cerrar_visor_libreria,
+)
+def abrir_visor_modal(resultado):
+    mostrar_resultado(resultado)
+    st.divider()
+    if st.button("✕ Cerrar ventana", key="cerrar_visor_lib", use_container_width=True):
+        st.session_state.material_libreria_activo = None
+        st.rerun()
+
 
 def mostrar_libreria():
     st.title("Librería de contenidos")
 
-    st.write("Consulta los materiales educativos generados " "durante esta sesión.")
+    st.write("Consulta los materiales educativos generados durante esta sesión.")
 
-    historial = st.session_state.material_history
+    historial = list(st.session_state.material_history)
 
     if not historial:
-        st.info("Todavía no hay materiales generados " "en esta sesión.")
+        st.info("Todavía no hay materiales generados en esta sesión.")
         return
 
-    for indice, material in enumerate(historial):
-        titulo = material.get("archivo", f"Material {indice + 1}")
+    opciones_filtro = {
+        "Todos": None,
+        "Resumen": "resumen",
+        "Flashcards": "flashcard",
+        "Quiz": "quiz",
+        "Guion": "guion",
+        "Tutorial": "tutorial",
+    }
 
-        formato = material.get("formato", "Sin formato")
+    iconos_formato = {
+        "resumen": "📄 Resumen",
+        "flashcard": "🗂️ Flashcards",
+        "quiz": "❓ Quiz",
+        "guion": "🎬 Guion",
+        "tutorial": "🛠️ Tutorial",
+    }
 
-        fecha = material.get("fecha", "Sin fecha")
+    col_busqueda, col_filtro = st.columns([1, 1])
 
-        with st.expander(f"{titulo} - {formato} ({fecha})"):
-            st.write(f"**Perfil:** {material.get('perfil', 'No especificado')}")
-            st.write(f"**Formato:** {formato}")
+    with col_busqueda:
+        busqueda = st.text_input(
+            "Buscar material",
+            placeholder="🔍 Buscar por tema, concepto clave o perfil...",
+        )
 
-            resultado = material.get("resultado")
+    with col_filtro:
+        filtro_seleccionado = st.pills(
+            "Filtrar por formato",
+            list(opciones_filtro.keys()),
+            default="Todos",
+        )
 
-            if resultado is not None:
-                import json
+    formato_clave = opciones_filtro.get(filtro_seleccionado)
+    termino = busqueda.strip().lower()
 
-                col1, col2 = st.columns(2)
+    materiales_visibles = []
+    for material in historial:
+        cumple_formato = (
+            formato_clave is None or material.get("formato") == formato_clave
+        )
 
-                with col1:
-                    if st.button(
-                        "👁️ Visualizar material",
-                        key=f"ver_lib_{indice}",
-                        type="primary",
-                        use_container_width=True,
-                    ):
-                        # Guardamos cuál material queremos ver y reiniciamos índices
-                        st.session_state.material_libreria_activo = resultado
-                        st.session_state.indice_flashcard = 0
-                        st.session_state.mostrar_respuesta_flashcard = False
-                        st.session_state.indice_quiz = 0
+        resultado_mat = material.get("resultado") or {}
+        texto_buscable = " ".join(
+            [
+                str(material.get("archivo") or ""),
+                str(material.get("perfil") or ""),
+                str(resultado_mat.get("titulo") or ""),
+                str(resultado_mat.get("conceptos_clave") or ""),
+            ]
+        ).lower()
 
-                with col2:
-                    st.download_button(
-                        "Descargar JSON",
-                        data=json.dumps(resultado, ensure_ascii=False, indent=2),
-                        file_name=f"material_{indice + 1}.json",
-                        mime="application/json",
-                        key=f"descargar_material_{indice}",
-                        use_container_width=True,
-                    )
-            else:
-                st.caption("Este registro no contiene un resultado descargable.")
+        cumple_busqueda = not termino or termino in texto_buscable
 
-    # FUERA DEL FOR: Renderizamos el material seleccionado usando la función existente mostrar_resultado
+        if cumple_formato and cumple_busqueda:
+            materiales_visibles.append(material)
+
+    if not materiales_visibles:
+        st.info(
+            "No se encontraron materiales que coincidan con los filtros seleccionados."
+        )
+        return
+
+    # Renderizado en casillas / tarjetas (cuadrícula de 3 columnas)
+    for i in range(0, len(materiales_visibles), 3):
+        fila = st.columns(3)
+        for col_idx, col in enumerate(fila):
+            idx_item = i + col_idx
+            if idx_item < len(materiales_visibles):
+                material = materiales_visibles[idx_item]
+                formato_raw = material.get("formato", "desconocido")
+                badge_formato = iconos_formato.get(
+                    formato_raw, f"📄 {formato_raw.capitalize()}"
+                )
+                fecha = material.get("fecha", "Sin fecha")
+                tema = material.get("archivo", f"Material {idx_item + 1}")
+                resultado = material.get("resultado") or {}
+                titulo_ai = resultado.get("titulo")
+
+                with col:
+                    with st.container(border=True):
+                        col_tag, col_fec = st.columns([1, 1])
+                        with col_tag:
+                            st.caption(f"**{badge_formato}**")
+                        with col_fec:
+                            st.caption(
+                                f"<div style='text-align: right; color: #8892b0;'>⏱️ {fecha}</div>",
+                                unsafe_allow_html=True,
+                            )
+
+                        # Título del tema consultado
+                        st.markdown(f"### {tema}")
+
+                        # Subtítulo pedagógico si la IA generó uno
+                        if titulo_ai and titulo_ai != tema:
+                            st.caption(f"💡 *{titulo_ai}*")
+
+                        st.caption(
+                            f"👤 **Perfil:** {material.get('perfil', 'General')} | 🏢 **Espacio:** `{material.get('tenant_id', 'default')}`"
+                        )
+
+                        st.divider()
+
+                        c_btn1, c_btn2 = st.columns(2)
+                        with c_btn1:
+                            if st.button(
+                                "👁️ Visualizar",
+                                key=f"ver_lib_{idx_item}_{formato_raw}",
+                                type="primary",
+                                use_container_width=True,
+                            ):
+                                st.session_state.material_libreria_activo = resultado
+                                st.session_state.indice_flashcard = 0
+                                st.session_state.mostrar_respuesta_flashcard = False
+                                st.session_state.indice_quiz = 0
+
+                        with c_btn2:
+                            st.download_button(
+                                "📥 JSON",
+                                data=json.dumps(
+                                    resultado, ensure_ascii=False, indent=2
+                                ),
+                                file_name=f"material_{idx_item + 1}.json",
+                                mime="application/json",
+                                key=f"descargar_lib_{idx_item}_{formato_raw}",
+                                use_container_width=True,
+                            )
+
+    # Ventana modal sobrepuesta cuando hay un material activo
     if st.session_state.get("material_libreria_activo"):
-        mostrar_resultado(st.session_state.material_libreria_activo)
+        abrir_visor_modal(st.session_state.material_libreria_activo)
 
 
 def main():
