@@ -1,68 +1,117 @@
+
+/* NUEVAMENTE - ADAPTACION DARK TECH */
+
+/* ENCABEZADO */
+
 .nm-hero {
-    padding: 24px 28px;
-    background: linear-gradient(120deg, #15243c, #334c78);
-    border-radius: 16px;
-    margin-bottom: 25px;
+    position: relative;
+    padding: 34px 40px;
+    background: linear-gradient(
+        115deg,
+        #281431 0%,
+        #151b35 58%,
+        #0b2132 100%
+    );
+    border: 1px solid #503258;
+    border-radius: 20px;
+    margin-bottom: 26px;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.16);
+}
+
+.nm-hero::before {
+    content: "APRENDIZAJE PERSONALIZADO";
+    display: block;
+    color: #35dff2;
+    font-size: 11px;
+    font-weight: 750;
+    letter-spacing: 1.5px;
+    margin-bottom: 12px;
 }
 
 .nm-hero h2 {
-    color: #ffffff;
-    font-size: 27px;
-    margin: 0 0 8px 0;
+    color: #f1f5ff !important;
+    font-size: clamp(28px, 3vw, 38px) !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.7px;
+    margin: 0 0 12px !important;
+    text-shadow: none !important;
 }
 
 .nm-hero p {
-    color: #dbe5f2;
+    color: #bdcbe1;
     font-size: 14px;
+    line-height: 1.8;
     margin: 0;
 }
 
+/* TITULOS */
+
 .nm-title {
     font-size: 21px;
-    font-weight: 700;
-    margin: 20px 0 12px;
+    font-weight: 750;
+    color: #f1f5ff;
+    margin: 24px 0 15px;
 }
 
+.nm-title-card {
+    font-size: 24px;
+    font-weight: 750;
+    color: #f1f5ff;
+    text-align: center;
+}
+
+/* ENCABEZADOS DE TARJETAS */
+
 .nm-card-header {
-    padding: 18px;
-    border-radius: 14px;
-    background: linear-gradient(120deg, #e9e0ff, #d9eaff);
-    color: #243454;
+    padding: 22px;
+    border-radius: 15px;
+    background: linear-gradient(115deg, #2b1c3c, #172d44);
+    border: 1px solid #4c3a63;
+    color: #f1f5ff;
     text-align: center;
 }
 
 .nm-card-header h3 {
-    color: #243454;
+    color: #f1f5ff !important;
     margin: 0;
-    font-size: 20px;
+    font-size: 20px !important;
+    font-weight: 750;
 }
 
 .nm-card-header p {
     margin: 8px 0 0;
-    color: #527d66;
+    color: #a7b7cd;
     font-size: 13px;
 }
 
+/* TARJETAS DE CONTENIDO */
+
 .nm-card {
-    background: #ffffff;
-    border: 1px solid #e4e9f2;
+    background: linear-gradient(145deg, #171f34, #101827);
+    border: 1px solid #35415c;
     border-radius: 16px;
     padding: 30px 24px;
-    box-shadow: 0 5px 18px rgba(25, 45, 80, 0.07);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
     text-align: center;
     margin: 12px 0;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.nm-card:hover {
+    border-color: #f44ec6;
+    transform: translateY(-2px);
 }
 
 .nm-card-label {
-    color: #6a7b94;
+    color: #35dff2;
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 750;
     letter-spacing: 1px;
     text-transform: uppercase;
 }
 
 .nm-card-question {
-    color: #243454;
+    color: #f1f5ff;
     font-size: 21px;
     font-weight: 650;
     line-height: 1.6;
@@ -70,14 +119,14 @@
 }
 
 .nm-card-answer {
-    color: #28466e;
+    color: #b8eaf2;
     font-size: 17px;
     line-height: 1.7;
     margin-top: 20px;
 }
 
 .nm-progress {
-    color: #718096;
+    color: #91a4bf;
     font-size: 13px;
     text-align: center;
     margin: 10px 0;
@@ -86,9 +135,13 @@
 .nm-info {
     padding: 14px 18px;
     border-radius: 12px;
-    background: rgba(100, 130, 180, 0.09);
+    background: rgba(53, 223, 242, 0.07);
+    border: 1px solid rgba(53, 223, 242, 0.18);
+    color: #c4d8ed;
     margin: 12px 0;
 }
+
+/* FLASHCARDS */
 
 .nm-flip-card {
     display: block;
@@ -97,16 +150,10 @@
     width: 100%;
     height: 240px;
     perspective: 1000px;
-    margin-top: 0px;
+    margin-top: 0;
     margin-bottom: 20px;
     box-sizing: border-box;
     padding: 6px;
-}
-
-.nm-title-card{
-    font-size: 24px;
-    color: #28466e;
-    text-align: center;
 }
 
 .nm-flip-inner {
@@ -136,118 +183,233 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    box-shadow: 0 4px 8px rgba(34, 4, 154, 0.1);
-    border: 1px solid #e4e9f2;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.22);
+    border: 1px solid #35415c;
     text-align: center;
     overflow-wrap: anywhere;
 }
 
 .nm-flip-front {
-    background: #ffffff;
-    color: #245424;
+    background: linear-gradient(145deg, #1b2440, #111a2d);
+    color: #f1f5ff;
+    border-color: #3b4b69;
 }
 
 .nm-flip-back {
     transform: rotateY(180deg);
-    background: #1e293b;
+    background: linear-gradient(145deg, #321c43, #172b43);
     color: #ffffff;
+    border-color: #79518a;
 }
 
 .nm-flip-front p {
-    color: #1e3a5f;
+    color: #f1f5ff !important;
     font-weight: 600;
+    line-height: 1.6;
 }
 
 .nm-flip-back p {
     color: #ffffff !important;
     font-size: 1.05rem;
+    line-height: 1.6;
 }
 
 .nm-flip-toggle:checked + .nm-flip-inner {
     transform: rotateY(180deg);
 }
 
-div.stButton>button {
-    border-radius: 10px;
-    font-weight: 600;
-}
+/* BOTONES DE FLASHCARDS */
 
-.stFormSubmitButton button {
-    background-color: #1e3a5f !important;
-    border: none !important;
+.st-key-mostrar_flashcard .stButton button,
+.st-key-ocultar_flashcard .stButton button {
     border-radius: 10px !important;
-}
-/* Botón Procesar documento */
-.st-key-procesar_doc button {
-    background-color: #1e3a5f !important;
-    border: none !important;
-    border-radius: 10px !important;
-    color: #ffffff !important;
     font-weight: 700 !important;
+    min-height: 44px;
 }
 
-/* Efecto al pasar el cursor */
-.st-key-procesar_doc button:hover {
-    background-color: #2b527f !important;
-    border: none !important;
-}
-
-/* Texto del botón */
-.st-key-procesar_doc button p {
-    color: #ffffff !important;
-    font-weight: 700 !important;
-}
-
-.stFormSubmitButton p {
-    font-size: 18px !important;
-    font-weight: 700 !important ;
-    color: #ffffff !important;   
-}
-
-.stFormSubmitButton button:hover {
-    background-color: #2b5288 !important;
+.st-key-mostrar_flashcard .stButton button {
+    background: linear-gradient(110deg, #a81780, #c42a9f) !important;
+    border: 1px solid #f44ec6 !important;
     color: #ffffff !important;
 }
 
-.st-key-mostrar_flashcard .stButton p {
-    font-size: 18px !important;
-    font-weight: 700 !important;
-    color: #ffffff !important;
-}
-.st-key-ocultar_flashcard .stButton p {
-    font-size: 18px !important;
-    font-weight: 700 !important;
-    color: #000000 !important;
+.st-key-mostrar_flashcard .stButton button:hover {
+    background: linear-gradient(110deg, #c51e95, #df3ab5) !important;
+    box-shadow: 0 0 16px rgba(244, 78, 198, 0.25) !important;
 }
 
-/* BOTÓN: Consultar respuesta */
+.st-key-ocultar_flashcard .stButton button {
+    background: #142638 !important;
+    border: 1px solid #35dff2 !important;
+    color: #d5faff !important;
+}
+
+.st-key-ocultar_flashcard .stButton button:hover {
+    background: #1b3347 !important;
+    box-shadow: 0 0 16px rgba(53, 223, 242, 0.18) !important;
+}
+
+.st-key-mostrar_flashcard .stButton button p,
+.st-key-ocultar_flashcard .stButton button p {
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    color: inherit !important;
+}
+
+/* BOTONES PARA COMPROBAR RESPUESTAS */
+
 [class^="st-key-comprobar_"] button,
 [class*=" st-key-comprobar_"] button {
-    font-size: 18px !important;
+    background: linear-gradient(110deg, #a81780, #c42a9f) !important;
+    border: 1px solid #f44ec6 !important;
+    border-radius: 10px !important;
+    font-size: 16px !important;
     font-weight: 700 !important;
     color: #ffffff !important;
 }
 
-/* TEXTO DEL BOTÓN */
+[class^="st-key-comprobar_"] button:hover,
+[class*=" st-key-comprobar_"] button:hover {
+    background: linear-gradient(110deg, #c51e95, #df3ab5) !important;
+    box-shadow: 0 0 16px rgba(244, 78, 198, 0.25) !important;
+}
+
 [class^="st-key-comprobar_"] button p,
 [class*=" st-key-comprobar_"] button p {
-    font-size: 18px !important;
+    font-size: 16px !important;
     font-weight: 700 !important;
     color: #ffffff !important;
 }
 
-/* RADIO: opciones de respuesta */
+/* OPCIONES DE CUESTIONARIOS */
+
 [class^="st-key-quiz_option_"],
 [class*=" st-key-quiz_option_"] {
-    font-size: 18px !important;
-    font-weight: 700 !important;
-    color: #000000 !important;
+    color: #f1f5ff !important;
 }
 
-/* TEXTO DE LAS OPCIONES */
+[class^="st-key-quiz_option_"] label,
+[class*=" st-key-quiz_option_"] label {
+    background: #141e31;
+    border: 1px solid #35415c;
+    border-radius: 10px;
+    padding: 11px 13px;
+    margin-bottom: 8px;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+[class^="st-key-quiz_option_"] label:hover,
+[class*=" st-key-quiz_option_"] label:hover {
+    background: #1b2940;
+    border-color: #35dff2;
+}
+
 [class^="st-key-quiz_option_"] label p,
 [class*=" st-key-quiz_option_"] label p {
-    font-size: 18px !important;
-    font-weight: 700 !important;
-    color: #000000 !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    color: #f1f5ff !important;
+}
+
+/* FORMULARIO DE ADAPTACION */
+
+[data-testid="stForm"] {
+    border-color: #503258;
+}
+
+[data-testid="stForm"] label p {
+    color: #b8c8e3;
+}
+
+[data-testid="stForm"] textarea,
+[data-testid="stForm"] input {
+    background: #0c1425 !important;
+    color: #f1f5ff !important;
+    border-color: #3d4a68 !important;
+}
+
+[data-testid="stForm"] textarea:focus,
+[data-testid="stForm"] input:focus {
+    border-color: #35dff2 !important;
+}
+
+/* SLIDER DE FRAGMENTOS */
+
+[data-testid="stSlider"] {
+    --primary-color: #35dff2;
+}
+
+[data-testid="stSlider"] [data-baseweb="slider"] [role="slider"] {
+    background-color: #35dff2 !important;
+    border-color: #35dff2 !important;
+    box-shadow: 0 0 10px rgba(53, 223, 242, 0.25);
+}
+
+[data-testid="stSlider"] [data-baseweb="slider"] [role="slider"]:focus {
+    box-shadow: 0 0 0 4px rgba(53, 223, 242, 0.18);
+}
+
+[data-testid="stSlider"] [data-baseweb="slider"] > div > div {
+    accent-color: #35dff2 !important;
+}
+
+/* BOTON DE GENERACION */
+
+[data-testid="stForm"] [data-testid="stFormSubmitButton"] button {
+    background: linear-gradient(110deg, #a81780, #c42a9f) !important;
+    border: 1px solid #f44ec6 !important;
+    color: #ffffff !important;
+    border-radius: 11px !important;
+    min-height: 48px;
+    font-weight: 750 !important;
+}
+
+[data-testid="stForm"] [data-testid="stFormSubmitButton"] button:hover {
+    background: linear-gradient(110deg, #c51e95, #df3ab5) !important;
+    box-shadow: 0 0 18px rgba(244, 78, 198, 0.25) !important;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 768px) {
+    .nm-hero {
+        padding: 25px;
+        border-radius: 16px;
+    }
+
+    .nm-hero h2 {
+        font-size: 25px !important;
+    }
+
+    .nm-card {
+        padding: 22px 16px;
+    }
+
+    .nm-card-question {
+        font-size: 18px;
+    }
+
+    .nm-flip-card {
+        height: 260px;
+    }
+
+    .nm-flip-front,
+    .nm-flip-back {
+        padding: 18px;
+    }
+}
+
+/* ACCESIBILIDAD */
+
+@media (prefers-reduced-motion: reduce) {
+    .nm-card,
+    .nm-flip-inner,
+    [class^="st-key-quiz_option_"] label,
+    [class*=" st-key-quiz_option_"] label {
+        transition: none !important;
+    }
+
+    .nm-card:hover {
+        transform: none !important;
+    }
 }

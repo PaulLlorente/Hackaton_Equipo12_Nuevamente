@@ -1,158 +1,275 @@
-﻿import streamlit as st
+﻿
+import html
+
+import streamlit as st
 
 
 def mostrar_inicio():
-    st.markdown(
-        """
-        <div class="hero">
-            <span class="status">● Plataforma NuevaMente</span>
-            <h1>Aprende de otra manera.</h1>
-            <p>
-                Sube documentación técnica, consulta su contenido
-                y genera materiales adaptados para facilitar el aprendizaje.
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    st.subheader("Panel de control")
-    st.caption("Resumen de la actividad y herramientas disponibles.")
-
     documentos = st.session_state.get("documentos", [])
     materiales = st.session_state.get("material_history", [])
 
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        st.metric(label="Documentos de la sesión", value=len(documentos))
-
-    with col2:
-        st.metric(label="Materiales generados", value=len(materiales))
-
-    with col3:
-        st.metric(label="Formatos disponibles", value=5)
-
-    st.divider()
-
-    st.subheader("Herramientas de NuevaMente")
-
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        st.markdown(
-            """
-            <div class="card">
-                <h3>Ingesta de documentos</h3>
+    st.markdown(
+        """
+        <section class="dashboard-hero">
+            <div class="dashboard-hero-content">
+                <span class="dashboard-eyebrow">
+                    TU ESPACIO DE APRENDIZAJE
+                </span>
+                <h1>
+                    <span style="color: #f1f5ff !important;">Aprende de</span>
+                    <span style="color: #f44ec6 !important;">otra manera.</span>
+                </h1>
                 <p>
-                    Procesa documentos PDF y Markdown para integrarlos
-                    al flujo de conocimiento de NuevaMente.
+                    Transforma documentación técnica en experiencias
+                    de aprendizaje inteligentes, claras y personalizadas.
                 </p>
+                <div class="dashboard-hero-tags">
+                    <span>Documentos</span>
+                    <span>Inteligencia artificial</span>
+                    <span>Aprendizaje adaptativo</span>
+                </div>
             </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        if st.button("Cargar documento", key="inicio_cargar", use_container_width=True):
-            st.session_state.ir_a = "Cargar documento"
-            st.rerun()
-
-    with col2:
-        st.markdown(
-            """
-            <div class="card">
-                <h3>Contenido adaptado</h3>
-                <p>
-                    Convierte información técnica en resúmenes,
-                    flashcards, cuestionarios y guiones.
-                </p>
+            <div class="dashboard-hero-art" aria-hidden="true">
+                <div class="dashboard-orbit">
+                    <div class="dashboard-orbit-core">NM</div>
+                </div>
             </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        </section>
+        """,
+        unsafe_allow_html=True
+    )
 
-        if st.button(
-            "Adaptar contenido", key="inicio_adaptar", use_container_width=True
-        ):
-            st.session_state.ir_a = "Adaptar contenido"
-            st.rerun()
-    with col3:
-        st.markdown(
-            """
-            <div class="card">
-                <h3>Consulta inteligente</h3>
-                <p>
-                    Realiza preguntas sobre los documentos procesados
-                    mediante el sistema RAG.
-                </p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+    st.markdown(
+        """
+        <div class="dashboard-section-heading">
+            <h2>Panel de control</h2>
+            <p>Resumen de tu espacio de trabajo.</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-        if st.button(
-            "Consultar documento", key="inicio_consultar", use_container_width=True
-        ):
-            st.session_state.ir_a = "Consultar documento"
-            st.rerun()
+    metricas = [
+        ("▤", "Documentos", len(documentos), "Registrados en esta sesión", "cyan"),
+        ("✦", "Materiales", len(materiales), "Contenidos generados", "pink"),
+        ("▦", "Formatos", 5, "Opciones disponibles", "cyan")
+    ]
 
-    st.divider()
+    columnas = st.columns(3, gap="medium")
 
-    col_actividad, col_espacio = st.columns([2, 1])
+    for columna, (icono, titulo, valor, descripcion, color) in zip(columnas, metricas):
+        with columna:
+            st.markdown(
+                f"""
+                <div class="dashboard-stat dashboard-stat-{color}">
+                    <div class="dashboard-stat-top">
+                        <span class="dashboard-stat-icon">{icono}</span>
+                        <span class="dashboard-stat-label">{titulo}</span>
+                    </div>
+                    <div class="dashboard-stat-number">{valor}</div>
+                    <div class="dashboard-stat-description">{descripcion}</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+    st.markdown(
+        """
+        <div class="dashboard-section-heading dashboard-tools-heading">
+            <h2>Herramientas principales</h2>
+            <p>Todo lo que necesitas para comenzar.</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    herramientas = [
+        {
+            "icono": "↑",
+            "titulo": "Ingesta de documentos",
+            "descripcion": "Sube y procesa archivos PDF y Markdown.",
+            "etiqueta": "GESTIÓN DOCUMENTAL",
+            "boton": "Cargar documento",
+            "destino": "Cargar documento",
+            "clave": "inicio_cargar",
+            "color": "cyan"
+        },
+        {
+            "icono": "✦",
+            "titulo": "Contenido adaptado",
+            "descripcion": "Genera resúmenes, flashcards, cuestionarios y guiones.",
+            "etiqueta": "APRENDIZAJE CON IA",
+            "boton": "Adaptar contenido",
+            "destino": "Adaptar contenido",
+            "clave": "inicio_adaptar",
+            "color": "pink"
+        },
+        {
+            "icono": "◎",
+            "titulo": "Consulta inteligente",
+            "descripcion": "Realiza preguntas sobre tus documentos mediante RAG.",
+            "etiqueta": "BÚSQUEDA INTELIGENTE",
+            "boton": "Consultar documento",
+            "destino": "Consultar documento",
+            "clave": "inicio_consultar",
+            "color": "cyan"
+        }
+    ]
+
+    columnas = st.columns(3, gap="medium")
+
+    for columna, herramienta in zip(columnas, herramientas):
+        with columna:
+            with st.container(key=f"dashboard-tool-{herramienta['clave']}"):
+                st.markdown(
+                    f"""
+                    <div class="dashboard-tool-content">
+                        <div class="dashboard-tool-icon dashboard-icon-{herramienta['color']}">
+                            {herramienta['icono']}
+                        </div>
+                        <div class="dashboard-tool-tag">{herramienta['etiqueta']}</div>
+                        <h3>{herramienta['titulo']}</h3>
+                        <p>{herramienta['descripcion']}</p>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+                if st.button(
+                    herramienta["boton"],
+                    key=herramienta["clave"],
+                    use_container_width=True,
+                    type="primary" if herramienta["color"] == "pink" else "secondary"
+                ):
+                    st.session_state.ir_a = herramienta["destino"]
+                    st.rerun()
+
+    st.markdown(
+        """
+        <div class="dashboard-section-heading dashboard-bottom-heading">
+            <h2>Tu actividad</h2>
+            <p>Información reciente y estado del espacio de trabajo.</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    col_actividad, col_espacio = st.columns([1.7, 1], gap="medium")
 
     with col_actividad:
-        st.subheader("Actividad reciente")
+        with st.container(key="dashboard-activity"):
+            st.markdown("#### Actividad reciente")
 
-        if materiales:
-            for indice, material in enumerate(materiales[:5]):
-                with st.container(border=True):
-                    st.write(f"**{material.get('archivo', 'Material educativo')}**")
+            if materiales:
+                for indice, material in enumerate(materiales[:5]):
+                    nombre = html.escape(str(material.get("archivo", "Material educativo")))
+                    formato = html.escape(str(material.get("formato", "Sin formato")))
+                    fecha = html.escape(str(material.get("fecha", "Sin fecha")))
 
-                    st.caption(
-                        f"{material.get('formato', 'Sin formato')} | "
-                        f"{material.get('fecha', 'Sin fecha')}"
+                    st.markdown(
+                        f"""
+                        <div class="dashboard-activity-item">
+                            <span class="dashboard-activity-icon">✦</span>
+                            <div>
+                                <strong>{nombre}</strong>
+                                <p>{formato} · {fecha}</p>
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
                     )
 
-                    if st.button("Ver en Librería", key=f"ver_material_{indice}"):
+                    if st.button(
+                        "Ver en Librería",
+                        key=f"ver_material_{indice}"
+                    ):
                         st.session_state.ir_a = "Librería"
                         st.rerun()
 
-        elif documentos:
-            for indice, documento in enumerate(documentos[-5:]):
-                with st.container(border=True):
+            elif documentos:
+                for indice, documento in enumerate(documentos[-5:]):
                     if isinstance(documento, dict):
                         nombre = documento.get(
                             "nombre",
-                            documento.get("nombre_archivo", f"Documento {indice + 1}"),
+                            documento.get(
+                                "nombre_archivo",
+                                f"Documento {indice + 1}"
+                            )
                         )
                     else:
                         nombre = str(documento)
 
-                    st.write(f"**{nombre}**")
-                    st.caption("Documento registrado en la sesión")
+                    nombre = html.escape(str(nombre))
 
-        else:
-            st.info("Todavía no hay actividad registrada en esta sesión.")
+                    st.markdown(
+                        f"""
+                        <div class="dashboard-activity-item">
+                            <span class="dashboard-activity-icon">▤</span>
+                            <div>
+                                <strong>{nombre}</strong>
+                                <p>Documento registrado en la sesión</p>
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+            else:
+                st.markdown(
+                    """
+                    <div class="dashboard-empty">
+                        <span>◇</span>
+                        <strong>Aún no hay actividad</strong>
+                        <p>Tus documentos y materiales aparecerán aquí.</p>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
     with col_espacio:
-        st.subheader("Espacio de trabajo")
+        with st.container(key="dashboard-workspace"):
+            st.markdown("#### Espacio de trabajo")
 
-        with st.container(border=True):
-            st.write("**Tenant actual**")
-            st.code(st.session_state.get("tenant_id", "equipo12"), language=None)
-
-            st.write("**Último documento**")
+            tenant = html.escape(
+                str(st.session_state.get("tenant_id", "equipo12"))
+            )
 
             document_id = st.session_state.get("document_id")
 
-            if document_id:
-                st.code(document_id, language=None)
-            else:
-                st.caption("Todavía no hay un documento seleccionado.")
-
-            st.write("**Estado de la sesión**")
-            st.caption(
-                "Modo demostración"
-                if not st.session_state.get("token")
-                else "Sesión con token disponible"
+            documento_actual = (
+                html.escape(str(document_id))
+                if document_id
+                else "Sin documento seleccionado"
             )
+
+            estado = (
+                "Sesión con token disponible"
+                if st.session_state.get("token")
+                else "Modo demostración"
+            )
+
+            st.markdown(
+                f"""
+                <div class="dashboard-workspace-row">
+                    <span>Tenant actual</span>
+                    <strong>{tenant}</strong>
+                </div>
+                <div class="dashboard-workspace-row">
+                    <span>Último documento</span>
+                    <strong>{documento_actual}</strong>
+                </div>
+                <div class="dashboard-workspace-row">
+                    <span>Estado de la sesión</span>
+                    <strong>{estado}</strong>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+    st.markdown(
+        """
+        <div class="dashboard-footer">
+            NuevaMente · Plataforma de aprendizaje inteligente
+        </div>
+        """,
+        unsafe_allow_html=True
+    )

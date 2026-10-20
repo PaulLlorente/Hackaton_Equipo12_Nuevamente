@@ -1,60 +1,116 @@
 
+import html
+
 import streamlit as st
 
 from services.api import cargar_documento
 
 
 def mostrar_carga():
-    st.title("Cargar documento")
-
-    st.write(
-        "Sube un documento para incorporarlo al sistema de NuevaMente."
+    st.markdown(
+        """
+        <section class="carga-hero">
+            <div class="carga-eyebrow">GESTIÓN DOCUMENTAL</div>
+            <h1>
+                <span style="color:#f1f5ff !important;">Cargar</span>
+                <span style="color:#f44ec6 !important;">documento</span>
+            </h1>
+            <p>
+                Incorpora documentos técnicos a tu espacio de conocimiento
+                para consultarlos y generar materiales educativos.
+            </p>
+        </section>
+        """,
+        unsafe_allow_html=True
     )
 
-    st.info("Formatos disponibles actualmente: PDF y Markdown.")
+    col_formulario, col_informacion = st.columns([1.15, 1], gap="large")
 
-    tenant_id = st.text_input(
-        "Identificador del espacio",
-        value=st.session_state.get("tenant_id", "equipo12"),
-        help="Identifica el espacio al que pertenecerán los documentos."
-    )
+    with col_formulario:
+        with st.container(key="carga-formulario"):
+            st.markdown("### Subir archivo")
+            st.caption("Selecciona el espacio de trabajo y el documento.")
 
-    archivo = st.file_uploader(
-        "Selecciona un documento",
-        type=["pdf", "md"], 
-        max_upload_size = 10 
-    )
+            tenant_id = st.text_input(
+                "Identificador del espacio",
+                value=st.session_state.get("tenant_id", "equipo12"),
+                help="Identifica el espacio al que pertenecerán los documentos.",
+                key="carga_tenant"
+            )
 
-    if archivo is not None:
-        st.write(f"**Archivo:** {archivo.name}")
-        st.write(f"**Tamaño:** {archivo.size / 1024:.2f} KB")
+            archivo = st.file_uploader(
+                "Selecciona un documento",
+                type=["pdf", "md"],
+                max_upload_size=10,
+                key="carga_archivo"
+            )
 
-        extension = archivo.name.lower().split(".")[-1]
+            st.caption("Formatos admitidos: PDF y Markdown. Máximo 10 MB.")
 
-        if extension == "pdf":
-            st.caption("Tipo detectado: Documento PDF")
+            procesar = st.button(
+                "Procesar documento",
+                type="primary",
+                use_container_width=True,
+                key="procesar_doc"
+            )
 
-        elif extension == "md":
-            st.caption("Tipo detectado: Documento Markdown")
+    with col_informacion:
+        with st.container(key="carga-informacion"):
+            st.markdown("### Información del documento")
 
-    if st.button(
-        "Procesar documento",
-        type="primary",
-        use_container_width=True,
-        key="procesar_doc"
-    ):
+            if archivo is not None:
+                nombre = html.escape(archivo.name)
+                tamano = archivo.size / 1024
+                extension = archivo.name.lower().rsplit(".", 1)[-1]
+
+                tipo = (
+                    "Documento PDF"
+                    if extension == "pdf"
+                    else "Documento Markdown"
+                )
+
+                st.markdown(
+                    f"""
+                    <div class="carga-file-info">
+                        <div class="carga-file-icon">▤</div>
+                        <div class="carga-file-name">{nombre}</div>
+                        <div class="carga-file-type">{tipo}</div>
+                    </div>
+                    <div class="carga-detail-row">
+                        <span>Tamaño</span>
+                        <strong>{tamano:.2f} KB</strong>
+                    </div>
+                    <div class="carga-detail-row">
+                        <span>Formato</span>
+                        <strong>{extension.upper()}</strong>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+            else:
+                st.markdown(
+                    """
+                    <div class="carga-empty">
+                        <div class="carga-empty-icon">▤</div>
+                        <strong>Ningún archivo seleccionado</strong>
+                        <p>
+                            Aquí aparecerán el nombre, tamaño y formato
+                            del documento que selecciones.
+                        </p>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+    if procesar:
         tenant_id = tenant_id.strip()
 
         if not tenant_id:
-            st.warning(
-                "Ingresa un identificador para tu espacio."
-            )
+            st.warning("Ingresa un identificador para tu espacio.")
             return
 
         if archivo is None:
-            st.warning(
-                "Selecciona un archivo PDF o Markdown."
-            )
+            st.warning("Selecciona un archivo PDF o Markdown.")
             return
 
         st.session_state.tenant_id = tenant_id
@@ -66,16 +122,12 @@ def mostrar_carga():
                     tenant_id
                 )
             except Exception as error:
-                st.error(
-                    f"No se pudo completar la solicitud: {error}"
-                )
+                st.error(f"No se pudo completar la solicitud: {error}")
                 return
 
         if correcto:
             if not isinstance(resultado, dict):
-                st.error(
-                    "El servidor devolvió una respuesta inesperada."
-                )
+                st.error("El servidor devolvió una respuesta inesperada.")
                 return
 
             document_id = resultado.get("document_id")
@@ -117,27 +169,52 @@ def mostrar_carga():
 
             with st.expander("Ver respuesta del servidor"):
                 st.json(resultado)
-
         else:
             st.error(str(resultado))
 
     documentos = st.session_state.get("documentos", [])
 
+    st.markdown(
+        """
+        <div class="carga-section-heading">
+            <h2>Documentos de esta sesión</h2>
+            <p>Consulta los documentos registrados en tu espacio de trabajo.</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
     if documentos:
-        st.divider()
-        st.subheader("Documentos de esta sesión")
-
         for documento in reversed(documentos):
-            with st.container(border=True):
-                st.write(
-                    f"**{documento.get('nombre', 'Documento')}**"
-                )
+            nombre = html.escape(
+                str(documento.get("nombre", "Documento"))
+            )
+            identificador = html.escape(
+                str(documento.get("document_id") or "No disponible")
+            )
+            tenant = html.escape(
+                str(documento.get("tenant_id", ""))
+            )
 
-                st.write(
-                    f"Document ID: "
-                    f"`{documento.get('document_id') or 'No disponible'}`"
-                )
-
-                st.write(
-                    f"Tenant: `{documento.get('tenant_id', '')}`"
-                )
+            st.markdown(
+                f"""
+                <div class="carga-document-card">
+                    <div class="carga-document-icon">▤</div>
+                    <div class="carga-document-content">
+                        <strong>{nombre}</strong>
+                        <p>Document ID: {identificador}</p>
+                        <span>Espacio: {tenant}</span>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+    else:
+        st.markdown(
+            """
+            <div class="carga-history-empty">
+                Aún no hay documentos registrados en esta sesión.
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
