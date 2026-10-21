@@ -109,58 +109,110 @@ class MotorVectorialRAG:
             logger.error(f"Fallo al recuperar contexto: {error_retriever}")
             raise
 
-    def ingestar_y_vectorizar_memoria(self, texto_crudo: str, tenant_id: str, document_id: str = "doc_desconocido",
+    def ingestar_y_vectorizar_memoria(self, texto_crudo, tenant_id: str, document_id: str = "doc_desconocido",
                                       origen: str = "origen_desconocido") -> Chroma:
         """Recibe el texto crudo en memoria, aplica chunking semántico y lo indexa."""
         if not texto_crudo:
             logger.error("El texto recibido está vacío.")
             raise ValueError("No hay datos para vectorizar.")
 
-        logger.info(f"Segmentando el texto crudo para el tenant {tenant_id}...")
+        logger.info(f"Procesando entrada para el tenant {tenant_id}...")
+
+        vectorstore = Chroma(
+            persist_directory=self.persist_directory,
+            embedding_function=self.embeddings
+        )
 
         try:
-            # CHUNKING
+            # INTENTO 1: Validar si es JSON estructurado (Diccionario o String JSON)
+            if isinstance(texto_crudo, dict):
+                datos_documento = texto_crudo
+            else:
+                datos_documento = json.loads(str(texto_crudo))
+
+            # IDEMPOTENCIA: Verificar hash SHA-256
+            metadata_origen = datos_documento.get("metadata_origen", {})
+            sha256_hash = metadata_origen.get("sha256")
+
+            if sha256_hash:
+                hash_str = str(sha256_hash)  # Forzamos el tipado estricto a string para calmar al linter
+
+                existentes = vectorstore.get(
+                    where={
+                        "$and": [
+                            {"tenant_id": tenant_id},
+                            {"sha256": hash_str}
+                        ]
+                    }
+                )
+
+                if existentes and existentes.get("ids"):
+                    logger.info(
+                        f"Documento duplicado detectado (Hash: {hash_str}). Omitiendo vectorización en Gemini.")
+                    return vectorstore
+
+            secciones = datos_documento.get("contenido_estructurado", [])
+            documentos_langchain = []
+            ids_chunks = []
+
+            logger.info(f"Vectorizando {len(secciones)} chunks estructurados en memoria...")
+
+            for indice, seccion in enumerate(secciones):
+                fragmento = seccion.get("texto", "").strip()
+                if not fragmento:
+                    continue
+
+                metadatos = {
+                    "tenant_id": tenant_id,
+                    "document_id": document_id,
+                    "origen": origen,
+                    "sha256": str(sha256_hash) if sha256_hash else "desconocido",
+                    "pagina_inicio": seccion.get("pagina_inicio", 1),
+                    "nivel_encabezado": seccion.get("nivel_encabezado", 0),
+                    "titulo_seccion": seccion.get("titulo_seccion", "Sin titulo")
+                }
+
+                doc = Document(page_content=fragmento, metadata=metadatos)
+                documentos_langchain.append(doc)
+                chunk_id = f"{document_id}_chunk_{indice}_{str(hash(fragmento))}"
+                ids_chunks.append(chunk_id)
+
+            if documentos_langchain:
+                vectorstore.add_documents(documents=documentos_langchain, ids=ids_chunks)
+                logger.info("Indexación estructurada completada exitosamente.")
+            return vectorstore
+
+        except (json.JSONDecodeError, TypeError, AttributeError) as e:
+            # INTENTO 2: Fallback si es texto plano crudo
+            logger.warning(f"Formato JSON no detectado, aplicando fallback a texto plano. Detalle: {e}")
+
             text_splitter = RecursiveCharacterTextSplitter(
                 chunk_size=1000,
                 chunk_overlap=200,
                 separators=["\n\n", "\n", ".", " ", ""]
             )
 
-            # Garantizamos que texto_crudo sea string
             fragmentos_texto = text_splitter.split_text(str(texto_crudo))
-
-            # PREPARACIÓN DE LOS DOCUMENTOS PARA LANGCHAIN
             documentos_langchain = []
             ids_chunks = []
 
-            logger.info(f"Vectorizando {len(fragmentos_texto)} chunks en memoria...")
+            logger.info(f"Vectorizando {len(fragmentos_texto)} chunks en texto plano...")
 
             for indice, fragmento in enumerate(fragmentos_texto):
-                # Construimos los metadatos garantizando el tenant_id
                 metadatos = {
                     "tenant_id": tenant_id,
                     "document_id": document_id,
                     "origen": origen
                 }
 
-                doc = Document(
-                    page_content=fragmento,
-                    metadata=metadatos
-                )
+                doc = Document(page_content=fragmento, metadata=metadatos)
                 documentos_langchain.append(doc)
-
-                # Generamos un ID único para evitar colisiones en ChromaDB
-                chunk_id = f"{document_id}_chunk_{indice}_{str(hash(fragmento))}"
+                chunk_id = f"{document_id}_chunk_plano_{indice}_{str(hash(fragmento))}"
                 ids_chunks.append(chunk_id)
 
-            # INDEXACIÓN EN CHROMADB
-            vectorstore = Chroma.from_documents(
-                documents=documentos_langchain,
-                embedding=self.embeddings,
-                ids=ids_chunks,
-                persist_directory=self.persist_directory
-            )
-            logger.info("Indexación en memoria completada exitosamente.")
+            if documentos_langchain:
+                vectorstore.add_documents(documents=documentos_langchain, ids=ids_chunks)
+                logger.info("Indexación de texto plano completada exitosamente.")
             return vectorstore
 
         except Exception as error_vectorizacion:

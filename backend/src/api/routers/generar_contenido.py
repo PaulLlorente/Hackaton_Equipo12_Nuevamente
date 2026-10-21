@@ -16,6 +16,9 @@ from backend.src.api.models.schemas_salida import (
 )
 from backend.src.nuevamente_rag.vector_store import MotorVectorialRAG
 
+from backend.database.schema_db import Users
+from backend.src.administrar_usuarios.gestionar_usuario import obtener_usuario
+
 logger = logging.getLogger("GenerarContenidoRouter")
 router = APIRouter(tags=["Generación LLM"])
 
@@ -48,7 +51,7 @@ Reglas obligatorias:
 
 
 @router.post("/adaptar", response_model=AdaptarResponse)
-async def adaptar_contenido(peticion: AdaptarRequest):
+async def adaptar_contenido(peticion: AdaptarRequest,usuario_actual: Users = Depends(obtener_usuario)):
     """
     Recupera fragmentos relevantes desde ChromaDB y genera la adaptación pedagógica requerida.
     """
