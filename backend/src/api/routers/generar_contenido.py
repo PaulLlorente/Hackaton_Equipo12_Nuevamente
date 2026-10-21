@@ -16,6 +16,9 @@ from backend.src.api.models.schemas_salida import (
 )
 from backend.src.nuevamente_rag.vector_store import MotorVectorialRAG
 
+from backend.database.schema_db import Users
+from backend.src.administrar_usuarios.gestionar_usuario import obtener_usuario
+
 logger = logging.getLogger("GenerarContenidoRouter")
 router = APIRouter(tags=["Generación LLM"])
 
@@ -48,7 +51,7 @@ Reglas obligatorias:
 
 
 @router.post("/adaptar", response_model=AdaptarResponse)
-async def adaptar_contenido(peticion: AdaptarRequest):
+async def adaptar_contenido(peticion: AdaptarRequest,usuario_actual: Users = Depends(obtener_usuario)):
     """
     Recupera fragmentos relevantes desde ChromaDB y genera la adaptación pedagógica requerida.
     """
@@ -76,7 +79,7 @@ async def adaptar_contenido(peticion: AdaptarRequest):
         # 2. Configurar LLM con salida estructurada según el formato
         esquema_salida = MAPA_ESQUEMAS[peticion.formato]
         llm = ChatGoogleGenerativeAI(
-            model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+            model=os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
             temperature=0.2,
         )
         extractor = llm.with_structured_output(esquema_salida)

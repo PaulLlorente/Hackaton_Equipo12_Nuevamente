@@ -1,6 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from backend.database.conexión_db import engine
+from backend.database.schema_db import Base
+
+Base.metadata.create_all(bind=engine)
+
 # Importación de los routers
 from backend.src.api.routers import generar_contenido
 from backend.src.nuevamente_rag import api as rag_api
@@ -15,8 +20,8 @@ app = FastAPI(
 # Configuración CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Permite que el frontend se conecte sin bloqueos
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

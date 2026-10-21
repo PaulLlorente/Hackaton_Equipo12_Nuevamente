@@ -15,7 +15,7 @@ from typing import Any, Literal, Mapping, Sequence
 
 from pydantic import BaseModel, ConfigDict, Field, create_model, model_validator
 
-from backend.src.api.models.schemas import Flashcards, Guion, Quiz, Resumen
+from backend.src.api.models.schemas_salida import Flashcards, Guion, Quiz, Resumen
 
 PROMPT_VERSION = "1.0"
 Profile = Literal["principiante", "avanzado"]

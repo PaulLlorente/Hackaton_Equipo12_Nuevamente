@@ -1,45 +1,70 @@
-import sys
-from pathlib import Path
+# test_vector_store.py
+import json
 import logging
+from backend.src.nuevamente_rag.vector_store import MotorVectorialRAG
 
-# Agregamos la raíz del proyecto al sistema para poder importar la carpeta src
-directorio_raiz = Path(__file__).resolve().parent.parent
-sys.path.append(str(directorio_raiz))
+logging.basicConfig(level=logging.INFO)
 
-from backend.src.nuevamente_rag import MotorVectorialRAG
-logger = logging.getLogger("TestLocal")
+def probar_motor():
+    print("\n--- 1. INICIALIZANDO MOTOR VECTORIAL ---")
+    motor = MotorVectorialRAG(persist_directory="./chroma_db_test")
 
+    tenant_prueba = "tenant_demo_123"
+    doc_id = "doc_prueba_001"
 
-def ejecutar_prueba():
-    try:
-        motor = MotorVectorialRAG()
+    # --- PRUEBA 1: JSON ESTRUCTURADO (Flujo Ingestión) ---
+    print("\n--- 2. PRUEBA: INGESTA JSON CON SHA-256 ---")
+    json_ingestion = {
+        "metadata_origen": {
+            "sha256": "hash_ficticio_123456789_abc"
+        },
+        "contenido_estructurado": [
+            {
+                "texto": "Este es el primer párrafo con información confidencial sobre la póliza.",
+                "pagina_inicio": 1,
+                "nivel_encabezado": 1,
+                "titulo_seccion": "Introducción"
+            }
+        ]
+    }
 
-        # Ruta dinámica al mock de datos
-        ruta_mock = directorio_raiz / "data" / "mock" / "chunks_mock.jsonl"
+    # Ingestar por primera vez
+    motor.ingestar_y_vectorizar_memoria(
+        texto_crudo=json.dumps(json_ingestion),
+        tenant_id=tenant_prueba,
+        document_id=doc_id
+    )
 
-        # Ejecutar Indexación
-        logger.info("Iniciando prueba de indexación...")
-        motor.vectorizar_e_indexar(str(ruta_mock))
+    # --- PRUEBA 2: IDEMPOTENCIA (Intentar subir el mismo hash) ---
+    print("\n--- 3. PRUEBA: IDEMPOTENCIA (Documento Duplicado) ---")
+    # Debería mostrar en logs: "Documento duplicado detectado... Omitiendo vectorización"
+    motor.ingestar_y_vectorizar_memoria(
+        texto_crudo=json.dumps(json_ingestion),
+        tenant_id=tenant_prueba,
+        document_id=doc_id
+    )
 
-        # Ejecutar Recuperación
-        logger.info("Iniciando prueba de recuperación (Retriever)...")
-        resultados = motor.recuperar_contexto(
-            query="¿Qué es una VCN?",
-            tenant_id="oracle_hackathon_test"
-        )
+    # --- PRUEBA 3: FALLBACK A TEXTO PLANO ---
+    print("\n--- 4. PRUEBA: FALLBACK A TEXTO PLANO ---")
+    texto_plano = "Este es un texto libre sin formato JSON que un usuario pegó directamente en el chat."
+    motor.ingestar_y_vectorizar_memoria(
+        texto_crudo=texto_plano,
+        tenant_id=tenant_prueba,
+        document_id="doc_plano_002"
+    )
 
-        # Mostrar Resultados
-        print("\n" + "=" * 50)
-        print("RESULTADOS DE LA BÚSQUEDA EN CHROMADB")
-        print("=" * 50)
-        for i, res in enumerate(resultados, 1):
-            print(f"--- Documento {i} ---")
-            print(f"Metadatos : {res.metadata}")
-            print(f"Contenido : {res.page_content[:150]}...\n")
+    # --- PRUEBA 4: RECUPERACIÓN DE CONTEXTO ---
+    print("\n--- 5. PRUEBA: RECUPERAR CONTEXTO ---")
+    resultados = motor.recuperar_contexto(
+        query="póliza confidencial",
+        tenant_id=tenant_prueba,
+        k=2
+    )
 
-    except Exception as e:
-        logger.critical(f"La prueba local falló: {e}")
-
+    print(f"\nResultados encontrados: {len(resultados)}")
+    for doc in resultados:
+        print(f"- Texto: {doc.page_content}")
+        print(f"  Metadatos: {doc.metadata}\n")
 
 if __name__ == "__main__":
-    ejecutar_prueba()
+    probar_motor()
