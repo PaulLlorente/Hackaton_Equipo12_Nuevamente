@@ -79,7 +79,7 @@ async def adaptar_contenido(peticion: AdaptarRequest,usuario_actual: Users = Dep
         # 2. Configurar LLM con salida estructurada según el formato
         esquema_salida = MAPA_ESQUEMAS[peticion.formato]
         llm = ChatGoogleGenerativeAI(
-            model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+            model=os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
             temperature=0.2,
         )
         extractor = llm.with_structured_output(esquema_salida)
