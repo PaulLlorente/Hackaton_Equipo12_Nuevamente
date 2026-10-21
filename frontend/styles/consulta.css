@@ -1,0 +1,168 @@
+
+/* ==========================================================
+   NUEVAMENTE - CONSULTAR DOCUMENTO
+   IDENTIDAD VISUAL DARK TECH
+   ========================================================== */
+
+
+/* ENCABEZADO PRINCIPAL */
+
+.consulta-hero {
+    background: linear-gradient(
+        115deg,
+        #281431,
+        #151b35 58%,
+        #0b2132
+    );
+
+    border: 1px solid #503258;
+    border-radius: 20px;
+    padding: 32px 38px;
+    margin-bottom: 25px;
+}
+
+.consulta-etiqueta {
+    color: #35dff2;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    margin-bottom: 12px;
+}
+
+.consulta-hero h1 {
+    color: #f44ec6 !important;
+    font-size: 37px !important;
+    font-weight: 800 !important;
+    margin: 0 0 12px !important;
+}
+
+.consulta-hero p {
+    color: #b8c8e3;
+    font-size: 15px;
+    line-height: 1.7;
+    margin: 0;
+}
+
+
+/* TARJETA INFORMATIVA */
+
+.consulta-info {
+    background: #141c30;
+    border: 1px solid #34415c;
+    border-radius: 16px;
+    padding: 24px;
+    min-height: 215px;
+}
+
+.consulta-info h3 {
+    color: #35dff2 !important;
+    font-size: 19px !important;
+    font-weight: 750;
+    margin: 0 0 15px !important;
+}
+
+.consulta-info p {
+    color: #b8c8e3;
+    font-size: 14px;
+    line-height: 1.8;
+    margin: 0 0 12px;
+}
+
+
+/* TITULOS DEL HISTORIAL */
+
+.consulta-seccion {
+    color: #f1f5ff;
+    font-size: 21px;
+    font-weight: 750;
+    margin: 28px 0 12px;
+}
+
+.consulta-subtitulo {
+    color: #91a4bf;
+    font-size: 13px;
+    margin-bottom: 15px;
+}
+
+
+/* MENSAJES DEL CHAT */
+
+div[data-testid="stChatMessage"] {
+    background: #141c30;
+    border: 1px solid #34415c;
+    border-radius: 15px;
+    padding: 12px;
+    margin-bottom: 12px;
+}
+
+div[data-testid="stChatMessage"] p {
+    color: #e6edff;
+    line-height: 1.7;
+}
+
+
+/* TARJETAS DE FRAGMENTOS */
+
+div[data-testid="stVerticalBlockBorderWrapper"] {
+    border-color: #34415c;
+    border-radius: 13px;
+}
+
+div[data-testid="stVerticalBlockBorderWrapper"] h4 {
+    color: #35dff2;
+}
+
+
+/* CAMPOS DEL FORMULARIO */
+
+div[data-testid="stTextInput"] input,
+div[data-testid="stTextArea"] textarea {
+    background: #0c1425;
+    color: #f1f5ff;
+    border-color: #34415c;
+    border-radius: 10px;
+}
+
+div[data-testid="stTextInput"] input:focus,
+div[data-testid="stTextArea"] textarea:focus {
+    border-color: #35dff2;
+}
+
+
+/* BOTONES */
+
+div[data-testid="stButton"] button[kind="primary"] {
+    background: linear-gradient(
+        90deg,
+        #c52da4,
+        #f44ec6
+    );
+
+    border: none;
+    border-radius: 10px;
+    color: #ffffff;
+    font-weight: 700;
+}
+
+div[data-testid="stButton"] button[kind="primary"]:hover {
+    background: #df40b9;
+    color: #ffffff;
+}
+
+
+/* ADAPTACION A PANTALLAS PEQUEÑAS */
+
+@media (max-width: 700px) {
+
+    .consulta-hero {
+        padding: 24px;
+    }
+
+    .consulta-hero h1 {
+        font-size: 29px !important;
+    }
+
+    .consulta-info {
+        min-height: auto;
+    }
+}
