@@ -1,4 +1,3 @@
-
 import streamlit as st
 
 from services.api import iniciar_sesion, registrar_usuario
@@ -190,7 +189,7 @@ def cargar_estilos_auth():
         }
         </style>
         """,
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
 
 
@@ -204,7 +203,7 @@ def mostrar_encabezado(descripcion):
             <div class="auth-accent"></div>
         </div>
         """,
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
 
 
@@ -229,18 +228,19 @@ def mostrar_login():
             with st.form("form_login"):
                 email = st.text_input(
                     "Correo electrónico",
-                    placeholder="correo@ejemplo.com"
+                    placeholder="correo@ejemplo.com",
+                    key="login_email",
                 )
 
                 password = st.text_input(
                     "Contraseña",
                     type="password",
-                    placeholder="Tu contraseña"
+                    placeholder="Tu contraseña",
+                    key="login_password",
                 )
 
                 enviar = st.form_submit_button(
-                    "Iniciar sesión",
-                    use_container_width=True
+                    "Iniciar sesión", use_container_width=True
                 )
 
             if enviar:
@@ -249,21 +249,16 @@ def mostrar_login():
 
                 else:
                     with st.spinner("Iniciando sesión..."):
-                        correcto, resultado = iniciar_sesion(
-                            email.strip(),
-                            password
-                        )
+                        correcto, resultado = iniciar_sesion(email.strip(), password)
 
                     if correcto:
-                        if (
-                            isinstance(resultado, dict)
-                            and resultado.get("access_token")
+                        if isinstance(resultado, dict) and resultado.get(
+                            "access_token"
                         ):
                             st.session_state.token = resultado["access_token"]
                             st.session_state.email = email.strip()
                             st.session_state.rol = resultado.get(
-                                "rol",
-                                resultado.get("role", "usuario")
+                                "rol", resultado.get("role", "usuario")
                             )
                             st.session_state.pagina = "Dashboard"
                             st.rerun()
@@ -282,14 +277,10 @@ def mostrar_login():
                     ¿Aún no tienes una cuenta?
                 </div>
                 """,
-                unsafe_allow_html=True
+                unsafe_allow_html=True,
             )
 
-            if st.button(
-                "Crear cuenta",
-                use_container_width=True,
-                key="ir_registro"
-            ):
+            if st.button("Crear cuenta", use_container_width=True, key="ir_registro"):
                 st.session_state.pantalla_auth = "registro"
                 st.rerun()
 
@@ -299,7 +290,7 @@ def mostrar_login():
                 NuevaMente · Plataforma de aprendizaje inteligente
             </div>
             """,
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
 
 
@@ -320,25 +311,25 @@ def mostrar_registro():
             with st.form("form_registro"):
                 email = st.text_input(
                     "Correo electrónico",
-                    placeholder="correo@ejemplo.com"
+                    placeholder="correo@ejemplo.com",
+                    key="registro_email",
                 )
 
                 password = st.text_input(
                     "Contraseña",
                     type="password",
-                    placeholder="Crea una contraseña"
+                    placeholder="Crea una contraseña",
+                    key="registro_password",
                 )
 
                 confirmar = st.text_input(
                     "Confirmar contraseña",
                     type="password",
-                    placeholder="Repite tu contraseña"
+                    placeholder="Repite tu contraseña",
+                    key="registro_confirmar",
                 )
 
-                enviar = st.form_submit_button(
-                    "Registrarme",
-                    use_container_width=True
-                )
+                enviar = st.form_submit_button("Registrarme", use_container_width=True)
 
             if enviar:
                 if not email.strip() or not password or not confirmar:
@@ -349,10 +340,7 @@ def mostrar_registro():
 
                 else:
                     with st.spinner("Creando cuenta..."):
-                        correcto, resultado = registrar_usuario(
-                            email.strip(),
-                            password
-                        )
+                        correcto, resultado = registrar_usuario(email.strip(), password)
 
                     if correcto:
                         st.session_state.mensaje_registro_exitoso = (
@@ -366,9 +354,7 @@ def mostrar_registro():
                         st.error(str(resultado))
 
             if st.button(
-                "Volver a iniciar sesión",
-                use_container_width=True,
-                key="volver_login"
+                "Volver a iniciar sesión", use_container_width=True, key="volver_login"
             ):
                 st.session_state.pantalla_auth = "login"
                 st.rerun()
@@ -379,5 +365,5 @@ def mostrar_registro():
                 NuevaMente · Plataforma de aprendizaje inteligente
             </div>
             """,
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )

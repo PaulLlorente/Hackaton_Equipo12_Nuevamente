@@ -1,3 +1,4 @@
+import html
 import json
 from datetime import datetime
 from pathlib import Path
@@ -136,6 +137,12 @@ def mostrar_flashcards(resultado):
     with st.container(border=False):
         mostrar = st.session_state.mostrar_respuesta_flashcard
         clase_giro = "is-flipped" if mostrar else ""
+        pregunta_segura = html.escape(
+            str(tarjeta.get("pregunta", "Sin pregunta"))
+        )
+        respuesta_segura = html.escape(
+            str(tarjeta.get("respuesta", "Sin respuesta disponible."))
+        )
 
         st.markdown(
             f"""
@@ -144,10 +151,10 @@ def mostrar_flashcards(resultado):
             <input type="checkbox" class="nm-flip-toggle" style="display:none">
                 <div class="nm-flip-inner {clase_giro} ">
                     <div class="nm-flip-front"  >
-                        <p>{tarjeta.get('pregunta', 'Sin pregunta')}</p>
+                        <p>{pregunta_segura}</p>
                     </div>
                     <div class="nm-flip-back">
-                        <p>{tarjeta.get('respuesta', 'Sin respuesta disponible.')}</p>
+                        <p>{respuesta_segura}</p>
                     </div>
                 </div>
             </label>
@@ -274,13 +281,16 @@ def mostrar_quiz(resultado):
             if not eleccion:
                 st.warning("Por favor, selecciona una respuesta antes de consultarla.")
             else:
-                respuesta_correcta = pregunta.get(
-                    "respuesta_correcta", "Sin respuesta disponible."
-                )
-                if (
+                respuesta_correcta = str(
+                    pregunta.get(
+                        "respuesta_correcta", "Sin respuesta disponible."
+                    )
+                ).strip()
+                es_correcta = bool(respuesta_correcta) and (
                     respuesta_correcta.lower() in eleccion.lower()
                     or eleccion[0].upper() == respuesta_correcta[0].upper()
-                ):
+                )
+                if es_correcta:
                     st.success("🎉 ¡Excelente! Respuesta correcta.")
                 else:
                     st.error(
@@ -347,8 +357,11 @@ def mostrar_guion(resultado):
                 st.markdown(f"#### Escena {escena.get('numero_escena', '')}")
 
             with col2:
+                marca_segura = html.escape(
+                    str(escena.get("marca_tiempo", ""))
+                )
                 st.markdown(
-                    f"<div style='text-align: right; color: #64748b; font-weight: bold;'>⏱ {escena.get('marca_tiempo', '')}</div>",
+                    f"<div style='text-align: right; color: #64748b; font-weight: bold;'>⏱ {marca_segura}</div>",
                     unsafe_allow_html=True,
                 )
 
@@ -415,7 +428,10 @@ def mostrar_resultado(resultado):
         mostrar_tutorial(resultado)
 
     else:
-        st.json(resultado)
+        st.info(
+            "El material se generó correctamente, pero su vista previa interactiva "
+            "no está disponible para este formato. Puedes descargarlo a continuación."
+        )
     fuentes = resultado.get("fuentes", [])
     if fuentes:
         st.divider()
@@ -546,7 +562,10 @@ def mostrar_adaptacion():
 
         if correcto:
             if not isinstance(resultado, dict):
-                st.error("El backend devolvió un resultado inesperado.")
+                st.warning(
+                    "No pudimos estructurar el material educativo en este intento. "
+                    "Por favor, inténtalo de nuevo."
+                )
                 return
 
             st.session_state.resultado_adaptacion = resultado

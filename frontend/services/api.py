@@ -1,4 +1,4 @@
-import uuid
+import hashlib
 from pathlib import Path
 
 import requests
@@ -6,7 +6,8 @@ import streamlit as st
 from .configuracion import API_URL
 
 MENSAJE_SIN_CONEXION = (
-    "No se pudo conectar con el backend. Verifica que FastAPI esté ejecutándose."
+    "No se pudo conectar con el servidor de NuevaMente. "
+    "Por favor, verifica tu conexión e intenta nuevamente."
 )
 MENSAJE_SESION_EXPIRADA = "Tu sesión expiró o no es válida. Inicia sesión de nuevo."
 
@@ -118,7 +119,10 @@ def registrar_usuario(email, password):
 
 def cargar_documento(archivo, tenant_id):
     nombre_archivo = Path(archivo.name).stem
-    document_id = f"{nombre_archivo}_{uuid.uuid4().hex[0:8]}"
+
+    contenido_bytes = archivo.read()
+    sha256 = hashlib.sha256(contenido_bytes).hexdigest()
+    document_id = f"{nombre_archivo}_{sha256[0:8]}"
 
     archivo.seek(0)
 

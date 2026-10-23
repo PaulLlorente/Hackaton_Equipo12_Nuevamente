@@ -26,6 +26,7 @@ artifacts/
 nuevamente.db
 *.db
 backend/chroma_db/
+chroma_db_test/
 .agents/
 .claude/
 .idea/

@@ -134,17 +134,21 @@ def mostrar_consulta():
                 )
 
             if not exito:
-                st.error("No fue posible completar la consulta.")
+                st.error("No fue posible completar la consulta en este momento.")
                 st.caption(str(respuesta))
 
             elif not isinstance(respuesta, dict):
-                st.error("El servidor devolvió una respuesta inesperada.")
+                st.warning(
+                    "No pudimos interpretar la respuesta. Por favor, intenta de nuevo."
+                )
 
             else:
                 resultados = respuesta.get("results", [])
 
                 if not isinstance(resultados, list):
-                    st.error("El formato de los resultados no es válido.")
+                    st.warning(
+                        "No fue posible recuperar los fragmentos de estudio en este intento."
+                    )
 
                 elif not resultados:
                     st.info(
@@ -192,12 +196,6 @@ def mostrar_consulta():
                     resultados,
                     consulta["tenant_id"],
                 )
-
-                with st.expander(
-                    "Ver respuesta completa del servidor "
-                    f"(consulta {numero_consulta})"
-                ):
-                    st.json(consulta["respuesta"])
 
         if st.button(
             "Limpiar historial",
