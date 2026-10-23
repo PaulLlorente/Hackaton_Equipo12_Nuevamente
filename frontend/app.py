@@ -29,6 +29,7 @@ def inicializar_sesion():
         "document_id": None,
         "documentos": [],
         "material_history": [],
+        "consulta_historial": [],
         "pagina": "Dashboard",
     }
 
@@ -44,11 +45,21 @@ def cerrar_sesion():
     st.session_state.document_id = None
     st.session_state.documentos = []
     st.session_state.material_history = []
+    st.session_state.consulta_historial = []
     st.session_state.material_libreria_activo = None
     st.session_state.resultado_consulta = None
     st.session_state.resultado_adaptacion = None
     st.session_state.pantalla_auth = "login"
     st.session_state.ir_a = "Dashboard"
+
+    for clave_sensible in (
+        "login_email",
+        "login_password",
+        "registro_email",
+        "registro_password",
+        "registro_confirmar",
+    ):
+        st.session_state.pop(clave_sensible, None)
 
     st.rerun()
 
@@ -296,14 +307,17 @@ def mostrar_libreria():
 def main():
     inicializar_sesion()
 
-    if st.session_state.token:
-        mostrar_aplicacion()
+    contenedor_principal = st.empty()
 
-    elif st.session_state.pantalla_auth == "registro":
-        mostrar_registro()
+    with contenedor_principal.container():
+        if st.session_state.token:
+            mostrar_aplicacion()
 
-    else:
-        mostrar_login()
+        elif st.session_state.pantalla_auth == "registro":
+            mostrar_registro()
+
+        else:
+            mostrar_login()
 
 
 if __name__ == "__main__":

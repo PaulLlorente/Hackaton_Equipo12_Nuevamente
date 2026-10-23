@@ -1,4 +1,3 @@
-
 import html
 
 import streamlit as st
@@ -22,13 +21,10 @@ def mostrar_carga():
             </p>
         </section>
         """,
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
 
-    col_formulario, col_informacion = st.columns(
-        [1.15, 1],
-        gap="large"
-    )
+    col_formulario, col_informacion = st.columns([1.15, 1], gap="large")
 
     with col_formulario:
         with st.container(key="carga-formulario"):
@@ -39,14 +35,14 @@ def mostrar_carga():
                 "Identificador del espacio",
                 value=st.session_state.get("tenant_id", "equipo12"),
                 help="Identifica el espacio al que pertenecerán los documentos.",
-                key="carga_tenant"
+                key="carga_tenant",
             )
 
             archivo = st.file_uploader(
                 "Selecciona un documento",
                 type=["pdf", "md"],
                 max_upload_size=10,
-                key="carga_archivo"
+                key="carga_archivo",
             )
 
             st.caption("Formatos admitidos: PDF y Markdown. Máximo 10 MB.")
@@ -55,7 +51,7 @@ def mostrar_carga():
                 "Procesar documento",
                 type="primary",
                 use_container_width=True,
-                key="procesar_doc"
+                key="procesar_doc",
             )
 
     with col_informacion:
@@ -67,11 +63,7 @@ def mostrar_carga():
                 tamano = archivo.size / 1024
                 extension = archivo.name.lower().rsplit(".", 1)[-1]
 
-                tipo = (
-                    "Documento PDF"
-                    if extension == "pdf"
-                    else "Documento Markdown"
-                )
+                tipo = "Documento PDF" if extension == "pdf" else "Documento Markdown"
 
                 st.markdown(
                     f"""
@@ -89,7 +81,7 @@ def mostrar_carga():
                         <strong>{extension.upper()}</strong>
                     </div>
                     """,
-                    unsafe_allow_html=True
+                    unsafe_allow_html=True,
                 )
 
             else:
@@ -104,7 +96,7 @@ def mostrar_carga():
                         </p>
                     </div>
                     """,
-                    unsafe_allow_html=True
+                    unsafe_allow_html=True,
                 )
 
     if procesar:
@@ -122,10 +114,7 @@ def mostrar_carga():
 
         with st.spinner("Procesando documento..."):
             try:
-                correcto, resultado = cargar_documento(
-                    archivo,
-                    tenant_id
-                )
+                correcto, resultado = cargar_documento(archivo, tenant_id)
             except Exception as error:
                 st.error(f"No se pudo completar la solicitud: {error}")
                 return
@@ -137,9 +126,7 @@ def mostrar_carga():
 
             raw_doc_id = resultado.get("document_id")
             document_id = (
-                formatear_document_id(raw_doc_id, archivo.name)
-                if raw_doc_id
-                else None
+                formatear_document_id(raw_doc_id, archivo.name) if raw_doc_id else None
             )
 
             if document_id:
@@ -151,7 +138,7 @@ def mostrar_carga():
             registro = {
                 "nombre": archivo.name,
                 "document_id": document_id,
-                "tenant_id": tenant_id
+                "tenant_id": tenant_id,
             }
 
             existe = (
@@ -167,22 +154,32 @@ def mostrar_carga():
             if not existe:
                 st.session_state.documentos.append(registro)
 
-            st.success(
-                "El backend confirmó el procesamiento del documento."
+            es_duplicado = (
+                existe or str(resultado.get("status", "")).lower() == "duplicate"
             )
 
-            if document_id:
-                st.write(f"**Document ID:** `{document_id}`")
+            if es_duplicado:
+                st.info(
+                    f"✨ El documento **{archivo.name}** ya se encontraba "
+                    "en tu espacio de estudio y está listo para usarse."
+                )
             else:
-                st.caption(
-                    "La respuesta no incluyó un identificador de documento."
+                st.success(
+                    f"✅ ¡Listo! **{archivo.name}** se procesó e incorporó "
+                    "correctamente a tu espacio de estudio."
                 )
 
-            if resultado.get("mensaje"):
-                st.info(resultado["mensaje"])
+            detalles_proceso = []
+            if document_id:
+                detalles_proceso.append(f"📄 **Referencia:** `{document_id}`")
+            if tenant_id:
+                detalles_proceso.append(f"🏢 **Espacio:** `{tenant_id}`")
+            fragmentos = resultado.get("chunks_ingested")
+            if isinstance(fragmentos, int) and fragmentos > 0:
+                detalles_proceso.append(f"🧩 **Secciones indexadas:** `{fragmentos}`")
 
-            with st.expander("Ver respuesta del servidor"):
-                st.json(resultado)
+            if detalles_proceso:
+                st.caption(" · ".join(detalles_proceso))
 
         else:
             st.error(str(resultado))
@@ -196,27 +193,20 @@ def mostrar_carga():
             <p>Consulta los documentos registrados en tu espacio de trabajo.</p>
         </div>
         """,
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
 
     if documentos:
         for documento in reversed(documentos):
-            nombre_doc = str(
-                documento.get("nombre", "Documento")
-            )
+            nombre_doc = str(documento.get("nombre", "Documento"))
 
             doc_id_legible = formatear_document_id(
-                documento.get("document_id"),
-                nombre_doc
+                documento.get("document_id"), nombre_doc
             )
 
             nombre = html.escape(nombre_doc)
-            identificador = html.escape(
-                str(doc_id_legible or "No disponible")
-            )
-            tenant = html.escape(
-                str(documento.get("tenant_id", ""))
-            )
+            identificador = html.escape(str(doc_id_legible or "No disponible"))
+            tenant = html.escape(str(documento.get("tenant_id", "")))
 
             st.markdown(
                 f"""
@@ -229,7 +219,7 @@ def mostrar_carga():
                     </div>
                 </div>
                 """,
-                unsafe_allow_html=True
+                unsafe_allow_html=True,
             )
 
     else:
@@ -239,5 +229,5 @@ def mostrar_carga():
                 Aún no hay documentos registrados en esta sesión.
             </div>
             """,
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
