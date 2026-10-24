@@ -1,4 +1,3 @@
-
 from pathlib import Path
 
 import streamlit as st
@@ -134,8 +133,23 @@ def mostrar_consulta():
                 )
 
             if not exito:
-                st.error("No fue posible completar la consulta en este momento.")
-                st.caption(str(respuesta))
+                texto_error = str(respuesta)
+                error_lower = texto_error.lower()
+
+                if (
+                    "429" in error_lower
+                    or "resource_exhausted" in error_lower
+                    or "quota" in error_lower
+                    or "rate limit" in error_lower
+                ):
+                    st.warning(
+                        "⏳ **Límite de servicio excedido temporalmente.**\n\n"
+                        "La cuota de procesamiento de la IA ha alcanzado su límite por minuto. "
+                        "Por favor, espera unos segundos e intenta realizar la consulta nuevamente."
+                    )
+                else:
+                    st.error("No fue posible completar la consulta en este momento.")
+                    st.caption(texto_error)
 
             elif not isinstance(respuesta, dict):
                 st.warning(
@@ -175,8 +189,8 @@ def mostrar_consulta():
 
         st.markdown(
             '<div class="consulta-subtitulo">'
-            'Preguntas realizadas durante esta sesión.'
-            '</div>',
+            "Preguntas realizadas durante esta sesión."
+            "</div>",
             unsafe_allow_html=True,
         )
 

@@ -137,9 +137,7 @@ def mostrar_flashcards(resultado):
     with st.container(border=False):
         mostrar = st.session_state.mostrar_respuesta_flashcard
         clase_giro = "is-flipped" if mostrar else ""
-        pregunta_segura = html.escape(
-            str(tarjeta.get("pregunta", "Sin pregunta"))
-        )
+        pregunta_segura = html.escape(str(tarjeta.get("pregunta", "Sin pregunta")))
         respuesta_segura = html.escape(
             str(tarjeta.get("respuesta", "Sin respuesta disponible."))
         )
@@ -282,9 +280,7 @@ def mostrar_quiz(resultado):
                 st.warning("Por favor, selecciona una respuesta antes de consultarla.")
             else:
                 respuesta_correcta = str(
-                    pregunta.get(
-                        "respuesta_correcta", "Sin respuesta disponible."
-                    )
+                    pregunta.get("respuesta_correcta", "Sin respuesta disponible.")
                 ).strip()
                 es_correcta = bool(respuesta_correcta) and (
                     respuesta_correcta.lower() in eleccion.lower()
@@ -357,9 +353,7 @@ def mostrar_guion(resultado):
                 st.markdown(f"#### Escena {escena.get('numero_escena', '')}")
 
             with col2:
-                marca_segura = html.escape(
-                    str(escena.get("marca_tiempo", ""))
-                )
+                marca_segura = html.escape(str(escena.get("marca_tiempo", "")))
                 st.markdown(
                     f"<div style='text-align: right; color: #64748b; font-weight: bold;'>⏱ {marca_segura}</div>",
                     unsafe_allow_html=True,
@@ -585,7 +579,22 @@ def mostrar_adaptacion():
             st.success("Material generado correctamente " "y agregado a la Librería.")
 
         else:
-            st.error(str(resultado))
+            texto_error = str(resultado)
+            error_lower = texto_error.lower()
+
+            if (
+                "429" in error_lower
+                or "resource_exhausted" in error_lower
+                or "quota" in error_lower
+                or "rate limit" in error_lower
+            ):
+                st.warning(
+                    "⏳ **Límite de servicio excedido temporalmente.**\n\n"
+                    "La cuota de procesamiento de la IA ha alcanzado su límite por minuto. "
+                    "Por favor, espera unos 30 a 60 segundos e intenta generar el material nuevamente."
+                )
+            else:
+                st.error(f"No fue posible generar el material educativo: {texto_error}")
             return
 
     resultado_guardado = st.session_state.get("resultado_adaptacion")
