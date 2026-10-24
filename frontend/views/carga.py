@@ -182,7 +182,23 @@ def mostrar_carga():
                 st.caption(" · ".join(detalles_proceso))
 
         else:
-            st.error(str(resultado))
+            texto_error = str(resultado)
+            error_lower = texto_error.lower()
+
+            # Interceptar error de cuota / saturación de Gemini (429)
+            if (
+                "429" in error_lower
+                or "resource_exhausted" in error_lower
+                or "quota" in error_lower
+                or "rate limit" in error_lower
+            ):
+                st.warning(
+                    "⏳ **Límite de servicio excedido temporalmente.**\n\n"
+                    "La cuota de procesamiento de la IA ha alcanzado su límite por minuto. "
+                    "Por favor, espera unos 30 a 60 segundos e intenta procesar el documento nuevamente."
+                )
+            else:
+                st.error(f"No fue posible procesar el documento: {texto_error}")
 
     documentos = st.session_state.get("documentos", [])
 
