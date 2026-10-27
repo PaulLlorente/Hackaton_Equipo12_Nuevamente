@@ -7,7 +7,10 @@ engine = create_engine(
     DATABASE_URL,
     echo=True,
     pool_pre_ping=True,  # Verifica que la conexión esté viva antes de enviar la consulta
-    pool_recycle=300     # Recicla las conexiones cada 5 minutos
+    pool_recycle=240 ,   # Recicla las conexiones cada 5 minutos
+    pool_timeout=30,     # Parámetro crítico para Supabase
+    pool_size=5,
+    max_overflow=10
 )
 
 # Crea la sesión

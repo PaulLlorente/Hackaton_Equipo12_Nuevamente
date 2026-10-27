@@ -555,6 +555,14 @@ def mostrar_adaptacion():
             )
 
         if correcto:
+            # --- AJUSTE DEFENSIVO PARA PARSEO DE PYDANTIC ---
+            if isinstance(resultado, dict):
+                if "data" in resultado:
+                    resultado = resultado["data"]
+
+                if "formato" not in resultado:
+                    resultado["formato"] = formatos[formato_visible]
+
             if not isinstance(resultado, dict):
                 st.warning(
                     "No pudimos estructurar el material educativo en este intento. "

@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import time
 from pathlib import Path
 from dotenv import load_dotenv
 from pydantic import SecretStr
@@ -14,6 +15,7 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger("VectorStoreRAG")
+
 
 class Config:
     """Validador de variables de entorno."""
@@ -35,7 +37,7 @@ class MotorVectorialRAG:
         try:
             self.api_key = Config.obtener_google_api_key()
             self.embeddings = GoogleGenerativeAIEmbeddings(
-                model="models/gemini-embedding-2",  # Modelo vigente
+                model="models/gemini-embedding-2",
                 google_api_key=self.api_key
             )
 
@@ -60,30 +62,22 @@ class MotorVectorialRAG:
         documentos_langchain = []
         ids_chunks = []
 
-        logger.info(f"Procesando chunks desde: {ruta_path.name}")
-
         try:
             with open(ruta_path, 'r', encoding='utf-8') as archivo_jsonl:
                 for linea in archivo_jsonl:
                     if not linea.strip():
                         continue
                     chunk_data = json.loads(linea)
-                    doc = Document(
-                        page_content=chunk_data["text"],
-                        metadata=chunk_data["metadata"]
-                    )
+                    doc = Document(page_content=chunk_data["text"], metadata=chunk_data["metadata"])
                     documentos_langchain.append(doc)
                     ids_chunks.append(chunk_data["chunk_id"])
 
-            logger.info(f"Vectorizando {len(documentos_langchain)} chunks...")
-
-            vectorstore = Chroma.from_documents(
-                documents=documentos_langchain,
-                embedding=self.embeddings,
-                ids=ids_chunks,
+            vectorstore = Chroma(
+                embedding_function=self.embeddings,
                 persist_directory=self.persist_directory
             )
-            logger.info("Indexación completada.")
+
+            self._ingestar_con_throttling(documentos_langchain, ids_chunks, vectorstore)
             return vectorstore
 
         except json.JSONDecodeError as error_json:
@@ -94,29 +88,20 @@ class MotorVectorialRAG:
             raise
 
     def recuperar_contexto(self, query: str, tenant_id: str, k: int = 3):
-        logger.info(f"Ejecutando Retriever | Query: '{query}' | Tenant: {tenant_id}")
         try:
             vectorstore = Chroma(
                 persist_directory=self.persist_directory,
                 embedding_function=self.embeddings
             )
-            return vectorstore.similarity_search(
-                query=query,
-                k=k,
-                filter={"tenant_id": tenant_id}
-            )
+            return vectorstore.similarity_search(query=query, k=k, filter={"tenant_id": tenant_id})
         except Exception as error_retriever:
             logger.error(f"Fallo al recuperar contexto: {error_retriever}")
             raise
 
     def ingestar_y_vectorizar_memoria(self, texto_crudo, tenant_id: str, document_id: str = "doc_desconocido",
                                       origen: str = "origen_desconocido") -> Chroma:
-        """Recibe el texto crudo en memoria, aplica chunking semántico y lo indexa."""
         if not texto_crudo:
-            logger.error("El texto recibido está vacío.")
             raise ValueError("No hay datos para vectorizar.")
-
-        logger.info(f"Procesando entrada para el tenant {tenant_id}...")
 
         vectorstore = Chroma(
             persist_directory=self.persist_directory,
@@ -124,38 +109,18 @@ class MotorVectorialRAG:
         )
 
         try:
-            # INTENTO 1: Validar si es JSON estructurado (Diccionario o String JSON)
-            if isinstance(texto_crudo, dict):
-                datos_documento = texto_crudo
-            else:
-                datos_documento = json.loads(str(texto_crudo))
-
-            # IDEMPOTENCIA: Verificar hash SHA-256
-            metadata_origen = datos_documento.get("metadata_origen", {})
-            sha256_hash = metadata_origen.get("sha256")
+            datos_documento = texto_crudo if isinstance(texto_crudo, dict) else json.loads(str(texto_crudo))
+            sha256_hash = datos_documento.get("metadata_origen", {}).get("sha256")
 
             if sha256_hash:
-                hash_str = str(sha256_hash)  # Forzamos el tipado estricto a string para calmar al linter
-
-                existentes = vectorstore.get(
-                    where={
-                        "$and": [
-                            {"tenant_id": tenant_id},
-                            {"sha256": hash_str}
-                        ]
-                    }
-                )
-
+                hash_str = str(sha256_hash)
+                existentes = vectorstore.get(where={"$and": [{"tenant_id": tenant_id}, {"sha256": hash_str}]})
                 if existentes and existentes.get("ids"):
-                    logger.info(
-                        f"Documento duplicado detectado (Hash: {hash_str}). Omitiendo vectorización en Gemini.")
+                    logger.info("Documento duplicado detectado. Omitiendo vectorización.")
                     return vectorstore
 
             secciones = datos_documento.get("contenido_estructurado", [])
-            documentos_langchain = []
-            ids_chunks = []
-
-            logger.info(f"Vectorizando {len(secciones)} chunks estructurados en memoria...")
+            documentos_langchain, ids_chunks = [], []
 
             for indice, seccion in enumerate(secciones):
                 fragmento = seccion.get("texto", "").strip()
@@ -171,50 +136,48 @@ class MotorVectorialRAG:
                     "nivel_encabezado": seccion.get("nivel_encabezado", 0),
                     "titulo_seccion": seccion.get("titulo_seccion", "Sin titulo")
                 }
-
-                doc = Document(page_content=fragmento, metadata=metadatos)
-                documentos_langchain.append(doc)
-                chunk_id = f"{document_id}_chunk_{indice}_{str(hash(fragmento))}"
-                ids_chunks.append(chunk_id)
+                documentos_langchain.append(Document(page_content=fragmento, metadata=metadatos))
+                ids_chunks.append(f"{document_id}_chunk_{indice}_{str(hash(fragmento))}")
 
             if documentos_langchain:
-                vectorstore.add_documents(documents=documentos_langchain, ids=ids_chunks)
-                logger.info("Indexación estructurada completada exitosamente.")
+                self._ingestar_con_throttling(documentos_langchain, ids_chunks, vectorstore)
             return vectorstore
 
-        except (json.JSONDecodeError, TypeError, AttributeError) as e:
-            # INTENTO 2: Fallback si es texto plano crudo
-            logger.warning(f"Formato JSON no detectado, aplicando fallback a texto plano. Detalle: {e}")
-
-            text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=1000,
-                chunk_overlap=200,
-                separators=["\n\n", "\n", ".", " ", ""]
-            )
-
+        except (json.JSONDecodeError, TypeError, AttributeError):
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200,
+                                                           separators=["\n\n", "\n", ".", " ", ""])
             fragmentos_texto = text_splitter.split_text(str(texto_crudo))
-            documentos_langchain = []
-            ids_chunks = []
-
-            logger.info(f"Vectorizando {len(fragmentos_texto)} chunks en texto plano...")
+            documentos_langchain, ids_chunks = [], []
 
             for indice, fragmento in enumerate(fragmentos_texto):
-                metadatos = {
-                    "tenant_id": tenant_id,
-                    "document_id": document_id,
-                    "origen": origen
-                }
-
-                doc = Document(page_content=fragmento, metadata=metadatos)
-                documentos_langchain.append(doc)
-                chunk_id = f"{document_id}_chunk_plano_{indice}_{str(hash(fragmento))}"
-                ids_chunks.append(chunk_id)
+                metadatos = {"tenant_id": tenant_id, "document_id": document_id, "origen": origen}
+                documentos_langchain.append(Document(page_content=fragmento, metadata=metadatos))
+                ids_chunks.append(f"{document_id}_chunk_plano_{indice}_{str(hash(fragmento))}")
 
             if documentos_langchain:
-                vectorstore.add_documents(documents=documentos_langchain, ids=ids_chunks)
-                logger.info("Indexación de texto plano completada exitosamente.")
+                self._ingestar_con_throttling(documentos_langchain, ids_chunks, vectorstore)
             return vectorstore
 
-        except Exception as error_vectorizacion:
-            logger.error(f"Error crítico en vectorización en memoria: {error_vectorizacion}")
-            raise
+    def _ingestar_con_throttling(self, documentos_langchain, ids_chunks, vectorstore):
+        """Procesa lotes calculando el peso en tokens para evitar Error 429 de Gemini."""
+        tamano_lote = 5
+        total_chunks = len(documentos_langchain)
+        limite_caracteres_minuto = 85000  # Límite seguro (~22,000 tokens)
+        caracteres_actuales = 0
+
+        for i in range(0, total_chunks, tamano_lote):
+            lote_docs = documentos_langchain[i: i + tamano_lote]
+            lote_ids = ids_chunks[i: i + tamano_lote]
+
+            caracteres_lote = sum(len(doc.page_content) for doc in lote_docs)
+
+            if caracteres_actuales + caracteres_lote > limite_caracteres_minuto:
+                logger.warning("Límite de cuota Gemini próximo. Pausa obligatoria de 65 segundos...")
+                time.sleep(65)
+                caracteres_actuales = 0
+
+            vectorstore.add_documents(documents=lote_docs, ids=lote_ids)
+            caracteres_actuales += caracteres_lote
+            logger.info(f"Progreso: {min(i + tamano_lote, total_chunks)}/{total_chunks} chunks indexados.")
+
+            time.sleep(2)
