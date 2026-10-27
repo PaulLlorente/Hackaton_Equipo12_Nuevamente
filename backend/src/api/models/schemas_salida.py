@@ -11,10 +11,20 @@ class FuenteCitada(BaseModel):
 
 class Resumen(BaseModel):
     formato: Literal["resumen"]
-    conceptos_clave: str
-    tiempo_estudio: int
-    evaluacion_calidad: str
-    contenido_adaptado: str
+    conceptos_clave: str = Field(
+        ..., description="Lista o descripción detallada de los conceptos clave abordados."
+    )
+    tiempo_estudio: int = Field(
+        default=15, description="Tiempo estimado de lectura y estudio en minutos."
+    )
+    evaluacion_calidad: str = Field(
+        ..., description="Breve autoevaluación pedagógica de la profundidad del contenido generado."
+    )
+    contenido_adaptado: str = Field(
+        ..., 
+        description="""Texto extenso, profundo y exhaustivo redactado en Markdown. 
+        ESTÁ PROHIBIDO un párrafo corto. Debe estructurarse obligatoriamente en múltiples secciones con subtítulos (Introducción, Desarrollo Técnico / Core Concepts, Implicaciones Prácticas y Conclusiones), simulando una lectura de estudio detallada de 15 minutos."""
+    )
     fuentes: List[FuenteCitada] = Field(default_factory=list)
 
 

@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import logging
 from pathlib import Path
 from dotenv import load_dotenv
@@ -75,15 +76,25 @@ class MotorVectorialRAG:
                     documentos_langchain.append(doc)
                     ids_chunks.append(chunk_data["chunk_id"])
 
-            logger.info(f"Vectorizando {len(documentos_langchain)} chunks...")
+            logger.info(f"Vectorizando {len(documentos_langchain)} chunks por lotes...")
 
-            vectorstore = Chroma.from_documents(
-                documents=documentos_langchain,
-                embedding=self.embeddings,
-                ids=ids_chunks,
+            vectorstore = Chroma(
+                embedding_function=self.embeddings,
                 persist_directory=self.persist_directory
             )
-            logger.info("Indexación completada.")
+
+            tamano_lote = 3
+            total_chunks = len(documentos_langchain)
+
+            for i in range(0, total_chunks, tamano_lote):
+                lote_docs = documentos_langchain[i : i + tamano_lote]
+                lote_ids = ids_chunks[i : i + tamano_lote]
+                vectorstore.add_documents(documents=lote_docs, ids=lote_ids)
+                logger.info(f"Lote JSONL indexado: {min(i + tamano_lote, total_chunks)}/{total_chunks}")
+                if i + tamano_lote < total_chunks:
+                    time.sleep(12)
+
+            logger.info("Indexación completada exitosamente por lotes.")
             return vectorstore
 
         except json.JSONDecodeError as error_json:

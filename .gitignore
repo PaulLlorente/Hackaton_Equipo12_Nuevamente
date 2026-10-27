@@ -30,3 +30,7 @@ chroma_db_test/
 .agents/
 .claude/
 .idea/
+venv/
+.venv/
+__pycache__/
+.env
